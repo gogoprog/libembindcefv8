@@ -46,12 +46,19 @@ solution "libembindcefv8"
             flags { "Optimize" }
             targetname "tests"
 
+        configuration "DebugEmscripten"
+            postbuildcommands { "emcc --bind testsd.bc -o testsd.js" }
+
+        configuration "ReleaseEmscripten"
+            postbuildcommands { "emcc --bind tests.bc -o tests.js" }
+
         configuration "*Emscripten"
             defines { "EMSCRIPTEN" }
             targetsuffix ".bc"
             if not os.is("windows") then
                 linkoptions { "-Wno-warn-absolute-paths" }
             end
+
 
         configuration "not *Emscripten"
             includedirs { "../deps/include" }

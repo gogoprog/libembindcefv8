@@ -1,0 +1,6 @@
+/build/*.bc
+/build/*.js
+/build/*.d
+/build/Makefile
+/build/obj
+/build/*.make
