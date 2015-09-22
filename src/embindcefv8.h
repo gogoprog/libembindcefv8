@@ -42,7 +42,8 @@ namespace embindcefv8
             return *this;
         }
 
-        ValueObject & field(const char *fieldName, float (T::*field))
+        template<class F>
+        ValueObject & field(const char *fieldName, F (T::*field))
         {
             #ifdef EMSCRIPTEN
                 vo->field(fieldName, field);
@@ -52,9 +53,9 @@ namespace embindcefv8
         }
 
     private:
+        char
+            name[128];
         #ifdef EMSCRIPTEN
-            char
-                name[128];
             emscripten::value_object<T>
                 * vo;
         #endif
