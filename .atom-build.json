@@ -1,0 +1,11 @@
+{
+  "cmd": "emmake",
+  "name": "debug",
+  "args": [ "make", "-j8", "config=debugemscripten64" ],
+  "sh": false,
+  "cwd": "{PROJECT_PATH}/build/",
+  "env": {
+  },
+  "errorMatch": "\n(?<file>[\\/0-9a-zA-Z\\._]+):(?<line>\\d+):(?<col>\\d+)",
+  "keymap": "f7"
+}
