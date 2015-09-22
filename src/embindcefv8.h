@@ -14,7 +14,17 @@ namespace embindcefv8
         ValueObject(const char *_name)
         {
             strcpy(name, _name);
-            vo = new emscripten::value_object<T>(_name);
+
+            #ifdef EMSCRIPTEN
+                vo = new emscripten::value_object<T>(_name);
+            #endif
+        }
+
+        ~ValueObject()
+        {
+            #ifdef EMSCRIPTEN
+                delete vo;
+            #endif
         }
 
         ValueObject & constructor()
@@ -26,7 +36,16 @@ namespace embindcefv8
                 };
 
             #ifdef EMSCRIPTEN
-                emscripten::function( name, func );
+                emscripten::function(name, func);
+            #endif
+
+            return *this;
+        }
+
+        ValueObject & field(const char *fieldName, float (T::*field))
+        {
+            #ifdef EMSCRIPTEN
+                vo->field(fieldName, field);
             #endif
 
             return *this;
