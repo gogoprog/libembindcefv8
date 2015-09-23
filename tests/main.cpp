@@ -23,11 +23,11 @@ struct TestStruct
 
 int main(int argc, char* argv[])
 {
-    std::cout << "embindcefv8 - tests" << std::endl;
-
     #ifdef CEF
         initCef(argc, argv);
     #endif
+
+    std::cout << "embindcefv8 - tests" << std::endl;
 
     embindcefv8::ValueObject<TestStruct>("TestStruct")
         .constructor()
