@@ -25,6 +25,8 @@ solution "libembindcefv8"
             "NoNativeWChar"
             }
 
+        targetdir "../tests/"
+
         if not os.is("windows") then
             buildoptions { "-std=c++11 -Wno-error=unused-variable -Wno-error=unused-parameter" }
         end
@@ -47,10 +49,10 @@ solution "libembindcefv8"
             targetname "tests"
 
         configuration "DebugEmscripten"
-            postbuildcommands { "emcc --bind testsd.bc -o testsd.js" }
+            postbuildcommands { "emcc --bind ../tests/testsd.bc -o ../tests/testsd.js" }
 
         configuration "ReleaseEmscripten"
-            postbuildcommands { "emcc --bind tests.bc -o tests.js" }
+            postbuildcommands { "emcc --bind ../tests/tests.bc -o ../tests/tests.js" }
 
         configuration "*Emscripten"
             defines { "EMSCRIPTEN" }

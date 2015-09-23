@@ -6,3 +6,4 @@
 /build/*.make
 /build/testsd
 /deps/lib/l*
+/tests/tests*
