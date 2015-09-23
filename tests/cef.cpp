@@ -67,4 +67,10 @@ void initCef(int argc, char *argv[])
     CefInitialize(args, settings, app.get(), nullptr);
 }
 
+void executeJs(const char *src)
+{
+    CefRefPtr<CefFrame> frame = browser->GetMainFrame();
+    frame->ExecuteJavaScript(src, frame->GetURL(), 0);
+}
+
 #endif

@@ -48,5 +48,6 @@ private:
 };
 
 void initCef(int argc, char *argv[]);
+void executeJs(const char *src);
 
 #endif
