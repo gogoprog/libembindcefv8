@@ -4,3 +4,5 @@
 /build/Makefile
 /build/obj
 /build/*.make
+/build/testsd
+/deps/lib/l*

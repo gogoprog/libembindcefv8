@@ -10,7 +10,7 @@ solution "libembindcefv8"
         files {
             "../src/**.h",
             "../src/**.cpp",
-            "../tests/main.cpp"
+            "../tests/*.cpp"
             }
 
         includedirs {
@@ -61,9 +61,11 @@ solution "libembindcefv8"
 
 
         configuration "*Cef"
-            includedirs { "../deps/include" }
+            defines { "CEF" }
+            includedirs { "../deps/include/cef/" }
             links {
                 "cef",
-                "cef_dll_wrapper"
+                "cef_dll_wrapper",
+                "pthread"
                 }
-            libdirs { "../deps/linux/lib" }
+            libdirs { "../deps/lib" }

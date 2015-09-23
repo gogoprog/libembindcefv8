@@ -1,5 +1,6 @@
 #include "embindcefv8.h"
 #include <iostream>
+#include "cef.h"
 
 #ifdef EMSCRIPTEN
     #define EXECUTE_JS      EM_ASM
@@ -23,6 +24,10 @@ struct TestStruct
 int main(int argc, char* argv[])
 {
     std::cout << "embindcefv8 - tests" << std::endl;
+
+    #ifdef CEF
+        initCef(argc, argv);
+    #endif
 
     embindcefv8::ValueObject<TestStruct>("TestStruct")
         .constructor()
