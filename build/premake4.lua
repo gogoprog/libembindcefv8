@@ -1,5 +1,5 @@
 solution "libembindcefv8"
-    configurations { "Debug", "Release", "DebugEmscripten", "ReleaseEmscripten" }
+    configurations { "DebugCef", "ReleaseCef", "DebugEmscripten", "ReleaseEmscripten" }
 
     platforms { "x32", "x64" }
 
@@ -60,7 +60,7 @@ solution "libembindcefv8"
             end
 
 
-        configuration "not *Emscripten"
+        configuration "*Cef"
             includedirs { "../deps/include" }
             links {
                 "cef",

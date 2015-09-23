@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstring>
+
 #ifdef EMSCRIPTEN
     #include <emscripten.h>
     #include <emscripten/bind.h>

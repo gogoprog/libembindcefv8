@@ -3,6 +3,9 @@
 
 #ifdef EMSCRIPTEN
     #define EXECUTE_JS      EM_ASM
+#else
+    #define EXECUTE_JS(src) \
+        #src
 #endif
 
 struct TestStruct
