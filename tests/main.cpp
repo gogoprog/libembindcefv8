@@ -6,7 +6,7 @@
     #define EXECUTE_JS      EM_ASM
 #else
     #define EXECUTE_JS(src) \
-        executeJs(#src);
+        executeJs( #src "\nstop();" );
 #endif
 
 struct TestStruct
@@ -36,8 +36,8 @@ int main(int argc, char* argv[])
 
     EXECUTE_JS(
         console.log("Test");
-        var test = Module.TestStruct();
-        console.log(test.floatMember);
+        /*var test = Module.TestStruct();
+        console.log(test.floatMember);*/
     );
 
     return 0;

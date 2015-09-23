@@ -28,17 +28,19 @@ private:
 #include "include/cef_request_handler.h"
 #include "include/cef_load_handler.h"
 
-class Handler : public CefRenderHandler, public CefClient, public CefRequestHandler, public CefLoadHandler
+class Handler : public CefRenderHandler, public CefClient, public CefRequestHandler, public CefLoadHandler, public CefDisplayHandler
 {
 public:
     Handler() = default;
 
     virtual bool GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
     virtual void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) override;
+    virtual bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, const CefString& message, const CefString& source, int line) override;
 
     virtual CefRefPtr<CefRenderHandler> GetRenderHandler() override { return this; }
     virtual CefRefPtr<CefRequestHandler> GetRequestHandler() override { return this; }
     virtual CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
+    virtual CefRefPtr<CefDisplayHandler> GetDisplayHandler() override { return this; }
 
     IMPLEMENT_REFCOUNTING(Handler)
 
@@ -49,5 +51,6 @@ private:
 
 void initCef(int argc, char *argv[]);
 void executeJs(const char *src);
+void processLoop();
 
 #endif

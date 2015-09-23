@@ -7,9 +7,27 @@ CefRefPtr<Handler>
     handler;
 CefRefPtr<CefBrowser>
     browser;
+bool
+    mustProcess(true);
+
+class StopHandler : public CefV8Handler {
+public:
+    StopHandler() {}
+
+    virtual bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) OVERRIDE
+    {
+        mustProcess = false;
+        return true;
+    }
+
+    IMPLEMENT_REFCOUNTING(LocalV8Handler);
+};
 
 void App::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
 {
+    CefRefPtr<CefV8Handler> stop_handler = new StopHandler();
+    CefRefPtr<CefV8Value> stop_func = CefV8Value::CreateFunction("stop", stop_handler);
+    context->GetGlobal()->SetValue("stop", stop_func, V8_PROPERTY_ATTRIBUTE_NONE);
 }
 
 void App::OnContextInitialized()
@@ -37,6 +55,12 @@ void Handler::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, cons
 {
 }
 
+bool Handler::OnConsoleMessage(CefRefPtr<CefBrowser> browser, const CefString& message, const CefString& source, int line)
+{
+    puts(message.ToString().c_str());
+    return true;
+}
+
 void initCef(int argc, char *argv[])
 {
     #ifdef _LINUX
@@ -62,6 +86,7 @@ void initCef(int argc, char *argv[])
     settings.single_process = true;
     settings.no_sandbox = true;
     settings.multi_threaded_message_loop = false;
+    settings.log_severity = LOGSEVERITY_DISABLE;
     settings.size = sizeof(CefSettings);
 
     CefInitialize(args, settings, app.get(), nullptr);
@@ -71,6 +96,12 @@ void executeJs(const char *src)
 {
     CefRefPtr<CefFrame> frame = browser->GetMainFrame();
     frame->ExecuteJavaScript(src, frame->GetURL(), 0);
+
+    mustProcess = true;
+    while(mustProcess)
+    {
+        CefDoMessageLoopWork();
+    }
 }
 
 #endif
