@@ -107,4 +107,9 @@ void executeJs(const char *src)
     }
 }
 
+void processLoop()
+{
+    CefDoMessageLoopWork();
+}
+
 #endif

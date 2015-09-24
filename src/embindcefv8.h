@@ -16,13 +16,31 @@ namespace embindcefv8
     #ifdef CEF
         void onContextCreated(CefV8Context* context);
         std::vector<std::function<void(CefV8Context*)>> & getRegisterers();
+        typedef std::function<void(CefRefPtr<CefV8Value>&)> ResultFunction;
+
+        class FuncHandler : public CefV8Handler {
+        public:
+            FuncHandler(ResultFunction & _func) : CefV8Handler()
+            {
+                func = _func;
+            }
+
+            virtual bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) override
+            {
+                puts("FuncHandler");
+                func(retval);
+                return true;
+            }
+
+            IMPLEMENT_REFCOUNTING(FuncHandler);
+        private:
+            ResultFunction
+                func;
+        };
     #endif
 
     template<class T>
     class ValueObject
-    #if CEF
-        : public CefV8Handler
-    #endif
     {
     public:
         ValueObject(const char *_name)
@@ -52,13 +70,14 @@ namespace embindcefv8
 
                 emscripten::function(name.c_str(), func);
             #else
-                CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(name, this);
-                std::string name_copy = name;
-
                 getRegisterers().push_back(
-                        [name_copy, constructor_func](CefV8Context* context)
+                        [this](CefV8Context* context)
                         {
-                            context->GetGlobal()->SetValue(name_copy.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
+                            ResultFunction fc = [this](CefRefPtr<CefV8Value>& retval) {
+                                retval = CefV8Value::CreateString("plop");
+                            };
+                            CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(name.c_str(), new FuncHandler(fc));
+                            context->GetGlobal()->SetValue(name.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
                         }
                     );
             #endif
@@ -75,16 +94,6 @@ namespace embindcefv8
 
             return *this;
         }
-
-        #ifdef CEF
-            virtual bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) override
-            {
-
-                return false;
-            }
-
-            IMPLEMENT_REFCOUNTING(MyV8Handler);
-        #endif
 
     private:
         std::string
