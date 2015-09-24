@@ -2,6 +2,7 @@
 #include "cef.h"
 
 #include "include/cef_client.h"
+#include "embindcefv8.h"
 
 CefRefPtr<Handler>
     handler;
@@ -28,6 +29,8 @@ void App::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> fr
     CefRefPtr<CefV8Handler> stop_handler = new StopHandler();
     CefRefPtr<CefV8Value> stop_func = CefV8Value::CreateFunction("stop", stop_handler);
     context->GetGlobal()->SetValue("stop", stop_func, V8_PROPERTY_ATTRIBUTE_NONE);
+
+    embindcefv8::onContextCreated(& * context);
 }
 
 void App::OnContextInitialized()
