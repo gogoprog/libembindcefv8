@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
 
     std::cout << "embindcefv8 - tests" << std::endl;
 
-    embindcefv8::ValueObject<TestStruct>("TestStruct")
+    (*(new embindcefv8::ValueObject<TestStruct>("TestStruct")))
         .constructor()
         .field("floatMember", &TestStruct::floatMember)
         ;

@@ -53,11 +53,12 @@ namespace embindcefv8
                 emscripten::function(name.c_str(), func);
             #else
                 CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(name, this);
+                std::string name_copy = name;
 
                 getRegisterers().push_back(
-                        [this, constructor_func](CefV8Context* context)
+                        [name_copy, constructor_func](CefV8Context* context)
                         {
-                            context->GetGlobal()->SetValue(name.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
+                            context->GetGlobal()->SetValue(name_copy.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
                         }
                     );
             #endif
