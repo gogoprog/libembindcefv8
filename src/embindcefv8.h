@@ -70,7 +70,7 @@ namespace embindcefv8
             #ifdef EMSCRIPTEN
                 vo = new emscripten::value_object<T>(_name);
             #else
-                register_constructor = false;
+                registerConstructor = false;
             #endif
         }
 
@@ -79,10 +79,10 @@ namespace embindcefv8
             #ifdef EMSCRIPTEN
                 delete vo;
             #else
-                if(register_constructor)
+                if(registerConstructor)
                 {
                     auto copied_name = name;
-                    auto copied_getters = this->accessors;
+                    auto copied_getters = getters;
 
                     getRegisterers().push_back(
                             [copied_name, copied_getters](CefRefPtr<CefV8Value> & module_object)
@@ -118,7 +118,7 @@ namespace embindcefv8
 
                 emscripten::function(name.c_str(), func);
             #else
-                register_constructor = true;
+                registerConstructor = true;
             #endif
 
             return *this;
@@ -130,7 +130,7 @@ namespace embindcefv8
             #ifdef EMSCRIPTEN
                 vo->field(fieldName, field);
             #else
-                accessors[fieldName] = [field](CefRefPtr<CefV8Value>& retval, void * object) {
+                getters[fieldName] = [field](CefRefPtr<CefV8Value>& retval, void * object) {
                     ValueCreator<F>::create(retval, (*(T *)object).*field);
                 };
             #endif
@@ -146,9 +146,9 @@ namespace embindcefv8
                 * vo;
         #else
             std::map<std::string, GetterFunction>
-                accessors;
+                getters;
             bool
-                register_constructor;
+                registerConstructor;
         #endif
     };
 
