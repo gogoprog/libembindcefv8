@@ -15,6 +15,7 @@ struct TestStruct
         :
         floatMember(123)
     {
+        puts("TestStruct constructor");
     }
 
     float
@@ -23,7 +24,7 @@ struct TestStruct
 
 int main(int argc, char* argv[])
 {
-    (*(new embindcefv8::ValueObject<TestStruct>("TestStruct")))
+    embindcefv8::ValueObject<TestStruct>("TestStruct")
         .constructor()
         .field("floatMember", &TestStruct::floatMember)
         ;
@@ -35,11 +36,17 @@ int main(int argc, char* argv[])
     std::cout << "embindcefv8 - tests" << std::endl;
 
     EXECUTE_JS(
-        console.log("Test");
         var test = TestStruct();
-        console.log(test);
-        console.log(test.floatMember);
+        console.log(test+'1');
+        console.log(test+'2');
+        console.log(test+'3');
+        console.log(test+'4');
     );
+
+
+    #ifdef CEF
+        finalizeCef();
+    #endif
 
     return 0;
 }

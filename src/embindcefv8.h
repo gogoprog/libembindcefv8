@@ -27,7 +27,6 @@ namespace embindcefv8
 
             virtual bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) override
             {
-                puts("FuncHandler");
                 func(retval);
                 return true;
             }
@@ -70,14 +69,15 @@ namespace embindcefv8
 
                 emscripten::function(name.c_str(), func);
             #else
+                std::string copied_name = name;
                 getRegisterers().push_back(
-                        [this](CefV8Context* context)
+                        [copied_name](CefV8Context* context)
                         {
-                            ResultFunction fc = [this](CefRefPtr<CefV8Value>& retval) {
+                            ResultFunction fc = [](CefRefPtr<CefV8Value>& retval) {
                                 retval = CefV8Value::CreateString("plop");
                             };
-                            CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(name.c_str(), new FuncHandler(fc));
-                            context->GetGlobal()->SetValue(name.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
+                            CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(copied_name.c_str(), new FuncHandler(fc));
+                            context->GetGlobal()->SetValue(copied_name.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
                         }
                     );
             #endif

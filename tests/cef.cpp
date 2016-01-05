@@ -18,6 +18,7 @@ public:
     virtual bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) OVERRIDE
     {
         mustProcess = false;
+        puts(name.ToString().c_str());
         return true;
     }
 
@@ -110,6 +111,11 @@ void executeJs(const char *src)
 void processLoop()
 {
     CefDoMessageLoopWork();
+}
+
+void finalizeCef()
+{
+    CefShutdown();
 }
 
 #endif
