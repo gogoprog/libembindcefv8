@@ -9,41 +9,49 @@
         executeJs( #src "\nstop();" );
 #endif
 
-struct FloatStruct
+struct AStruct
 {
-    FloatStruct()
+    AStruct()
         :
-        floatMember(123)
+        floatMember(123),
+        intMember(1024),
+        stringMember("A sample string")
     {
     }
 
     float
         floatMember;
+    int
+        intMember;
+    std::string
+        stringMember;
 };
 
-struct StructContainerStruct
+struct AStructContainer
 {
-    StructContainerStruct()
+    AStructContainer()
         :
-        testMember()
+        aMember()
     {
     }
 
-    FloatStruct
-        testMember;
+    AStruct
+        aMember;
 };
 
 int main(int argc, char* argv[])
 {
     {
-        embindcefv8::ValueObject<FloatStruct>("FloatStruct")
+        embindcefv8::ValueObject<AStruct>("AStruct")
             .constructor()
-            .field("floatMember", &FloatStruct::floatMember)
+            .field("floatMember", &AStruct::floatMember)
+            .field("intMember", &AStruct::intMember)
+            .field("stringMember", &AStruct::stringMember)
             ;
 
-        embindcefv8::ValueObject<StructContainerStruct>("StructContainerStruct")
+        embindcefv8::ValueObject<AStructContainer>("AStructContainer")
             .constructor()
-            .field("testMember", &StructContainerStruct::testMember)
+            .field("aMember", &AStructContainer::aMember)
             ;
     }
 
@@ -51,20 +59,28 @@ int main(int argc, char* argv[])
         initCef(argc, argv);
     #endif
 
-    std::cout << "embindcefv8 - tests" << std::endl;
+    std::cout << "[embindcefv8] Begin tests" << std::endl;
+    std::cout << "-------------------------" << std::endl;
 
     EXECUTE_JS(
-        var test = Module.FloatStruct();
+        var test = Module.AStruct();
         console.log(test.floatMember);
+        console.log(test.intMember);
+        console.log(test.stringMember);
 
-        test = Module.StructContainerStruct();
-        console.log(test.testMember.floatMember);
+        test = Module.AStructContainer();
+        console.log(test.aMember.floatMember);
+        console.log(test.aMember.intMember);
+        console.log(test.aMember.stringMember);
     );
 
 
     #ifdef CEF
         finalizeCef();
     #endif
+
+    std::cout << "-------------------------" << std::endl;
+    std::cout << "[embindcefv8] End tests" << std::endl;
 
     return 0;
 }

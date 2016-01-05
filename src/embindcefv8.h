@@ -55,6 +55,24 @@ namespace embindcefv8
                 retval = CefV8Value::CreateDouble(value);
             }
         };
+
+        template<>
+        struct ValueCreator<int>
+        {
+            static void create(CefRefPtr<CefV8Value>& retval, int & value)
+            {
+                retval = CefV8Value::CreateInt(value);
+            }
+        };
+
+        template<>
+        struct ValueCreator<std::string>
+        {
+            static void create(CefRefPtr<CefV8Value>& retval, std::string & value)
+            {
+                retval = CefV8Value::CreateString(value);
+            }
+        };
     #endif
 
     template<class T>
