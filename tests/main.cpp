@@ -9,25 +9,41 @@
         executeJs( #src "\nstop();" );
 #endif
 
-struct TestStruct
+struct FloatStruct
 {
-    TestStruct()
+    FloatStruct()
         :
         floatMember(123)
     {
-        puts("TestStruct constructor");
     }
 
     float
         floatMember;
 };
 
+struct StructContainerStruct
+{
+    StructContainerStruct()
+        :
+        testMember()
+    {
+    }
+
+    FloatStruct
+        testMember;
+};
+
 int main(int argc, char* argv[])
 {
     {
-        embindcefv8::ValueObject<TestStruct>("TestStruct")
+        embindcefv8::ValueObject<FloatStruct>("FloatStruct")
             .constructor()
-            .field("floatMember", &TestStruct::floatMember)
+            .field("floatMember", &FloatStruct::floatMember)
+            ;
+
+        embindcefv8::ValueObject<StructContainerStruct>("StructContainerStruct")
+            .constructor()
+            .field("testMember", &StructContainerStruct::testMember)
             ;
     }
 
@@ -38,8 +54,11 @@ int main(int argc, char* argv[])
     std::cout << "embindcefv8 - tests" << std::endl;
 
     EXECUTE_JS(
-        var test = Module.TestStruct();
+        var test = Module.FloatStruct();
         console.log(test.floatMember);
+
+        test = Module.StructContainerStruct();
+        console.log(test.testMember.floatMember);
     );
 
 
