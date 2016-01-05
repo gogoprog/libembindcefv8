@@ -3,18 +3,21 @@
 namespace embindcefv8
 {
     #ifdef CEF
-        std::vector<std::function<void(CefV8Context*)>>
+        std::vector<Registerer>
             registerers;
 
-        void onContextCreated(CefV8Context* context)
+        void onContextCreated(CefV8Context *context)
         {
+            CefRefPtr<CefV8Value> module_object = CefV8Value::CreateObject(nullptr);
+            context->GetGlobal()->SetValue("Module", module_object, V8_PROPERTY_ATTRIBUTE_NONE);
+
             for(auto func : registerers)
             {
-                func(context);
+                func(module_object);
             }
         }
 
-        std::vector<std::function<void(CefV8Context*)>> & getRegisterers()
+        std::vector<Registerer> & getRegisterers()
         {
             return registerers;
         }

@@ -15,10 +15,13 @@ namespace embindcefv8
 {
     #ifdef CEF
         void onContextCreated(CefV8Context* context);
-        std::vector<std::function<void(CefV8Context*)>> & getRegisterers();
+        typedef std::function<void(CefRefPtr<CefV8Value>&)> Registerer;
+        std::vector<Registerer> & getRegisterers();
         typedef std::function<void(CefRefPtr<CefV8Value>&)> ResultFunction;
+        typedef std::function<void(CefRefPtr<CefV8Value>&, void*)> GetterFunction;
 
-        class FuncHandler : public CefV8Handler {
+        class FuncHandler : public CefV8Handler
+        {
         public:
             FuncHandler(ResultFunction & _func) : CefV8Handler()
             {
@@ -36,6 +39,24 @@ namespace embindcefv8
             ResultFunction
                 func;
         };
+
+        template<typename T>
+        struct ValueCreator
+        {
+            static void create(CefRefPtr<CefV8Value>& retval, T & value)
+            {
+                puts("ValueCreator : Unknown type.");
+            }
+        };
+
+        template<>
+        struct ValueCreator<float>
+        {
+            static void create(CefRefPtr<CefV8Value>& retval, float & value)
+            {
+                retval = CefV8Value::CreateDouble(value);
+            }
+        };
     #endif
 
     template<class T>
@@ -48,6 +69,8 @@ namespace embindcefv8
 
             #ifdef EMSCRIPTEN
                 vo = new emscripten::value_object<T>(_name);
+            #else
+                register_constructor = false;
             #endif
         }
 
@@ -55,6 +78,32 @@ namespace embindcefv8
         {
             #ifdef EMSCRIPTEN
                 delete vo;
+            #else
+                if(register_constructor)
+                {
+                    auto copied_name = name;
+                    auto copied_getters = this->accessors;
+
+                    getRegisterers().push_back(
+                            [copied_name, copied_getters](CefRefPtr<CefV8Value> & module_object)
+                            {
+                                ResultFunction fc = [copied_getters](CefRefPtr<CefV8Value>& retval)
+                                {
+                                    T new_object;
+                                    retval = CefV8Value::CreateObject(nullptr);
+
+                                    for (auto& kv : copied_getters)
+                                    {
+                                        CefRefPtr<CefV8Value> field_value;
+                                        kv.second(field_value, (void*) &new_object);
+                                        retval->SetValue(kv.first, field_value, V8_PROPERTY_ATTRIBUTE_NONE);
+                                    }
+                                };
+                                CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(copied_name.c_str(), new FuncHandler(fc));
+                                module_object->SetValue(copied_name.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
+                            }
+                        );
+                }
             #endif
         }
 
@@ -69,17 +118,7 @@ namespace embindcefv8
 
                 emscripten::function(name.c_str(), func);
             #else
-                std::string copied_name = name;
-                getRegisterers().push_back(
-                        [copied_name](CefV8Context* context)
-                        {
-                            ResultFunction fc = [](CefRefPtr<CefV8Value>& retval) {
-                                retval = CefV8Value::CreateString("plop");
-                            };
-                            CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(copied_name.c_str(), new FuncHandler(fc));
-                            context->GetGlobal()->SetValue(copied_name.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
-                        }
-                    );
+                register_constructor = true;
             #endif
 
             return *this;
@@ -90,6 +129,10 @@ namespace embindcefv8
         {
             #ifdef EMSCRIPTEN
                 vo->field(fieldName, field);
+            #else
+                accessors[fieldName] = [field](CefRefPtr<CefV8Value>& retval, void * object) {
+                    ValueCreator<F>::create(retval, (*(T *)object).*field);
+                };
             #endif
 
             return *this;
@@ -102,8 +145,10 @@ namespace embindcefv8
             emscripten::value_object<T>
                 * vo;
         #else
-            std::map<std::string, std::function<void(T*)>>
+            std::map<std::string, GetterFunction>
                 accessors;
+            bool
+                register_constructor;
         #endif
     };
 

@@ -1,7 +1,7 @@
 {
-  "cmd": "emmake",
-  "name": "debugemscripten",
-  "args": [ "make", "-j8", "config=debugemscripten64" ],
+  "cmd": "make",
+  "name": "debugcef",
+  "args": [ "-j8", "config=debugcef64" ],
   "sh": false,
   "cwd": "{PROJECT_PATH}/build/",
   "env": {
@@ -10,9 +10,9 @@
   "keymap": "f7",
   "targets": {
    "cef": {
-       "cmd": "make",
-       "name": "debugcef",
-       "args": [ "-j8", "config=debugcef64" ],
+       "cmd": "emmake",
+       "name": "debugemscripten",
+       "args": [ "make", "-j8", "config=debugemscripten64" ],
        "sh": false,
        "cwd": "{PROJECT_PATH}/build/",
        "env": {

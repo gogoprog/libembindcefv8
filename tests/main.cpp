@@ -24,10 +24,12 @@ struct TestStruct
 
 int main(int argc, char* argv[])
 {
-    embindcefv8::ValueObject<TestStruct>("TestStruct")
-        .constructor()
-        .field("floatMember", &TestStruct::floatMember)
-        ;
+    {
+        embindcefv8::ValueObject<TestStruct>("TestStruct")
+            .constructor()
+            .field("floatMember", &TestStruct::floatMember)
+            ;
+    }
 
     #ifdef CEF
         initCef(argc, argv);
@@ -36,11 +38,8 @@ int main(int argc, char* argv[])
     std::cout << "embindcefv8 - tests" << std::endl;
 
     EXECUTE_JS(
-        var test = TestStruct();
-        console.log(test+'1');
-        console.log(test+'2');
-        console.log(test+'3');
-        console.log(test+'4');
+        var test = Module.TestStruct();
+        console.log(test.floatMember);
     );
 
 

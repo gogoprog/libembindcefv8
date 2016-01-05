@@ -23,9 +23,7 @@ private:
     IMPLEMENT_REFCOUNTING(App);
 };
 
-#include "include/cef_app.h"
 #include "include/cef_client.h"
-#include "include/cef_request_handler.h"
 #include "include/cef_load_handler.h"
 
 class Handler : public CefRenderHandler, public CefClient, public CefRequestHandler, public CefLoadHandler, public CefDisplayHandler
