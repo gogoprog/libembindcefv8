@@ -78,6 +78,95 @@ namespace embindcefv8
     #endif
 
     template<class T>
+    class ValueObject
+    {
+    public:
+        ValueObject(const char *_name)
+        {
+            name = _name;
+
+            #ifdef EMSCRIPTEN
+                emVo = new emscripten::value_object<T>(_name);
+            #else
+                registerConstructor = false;
+            #endif
+        }
+
+        ~ValueObject()
+        {
+            #ifdef EMSCRIPTEN
+                delete emVo;
+            #else
+                if(registerConstructor)
+                {
+                    auto copied_name = name;
+                    auto copied_getters = getters;
+
+                    getRegisterers().push_back(
+                            [copied_name, copied_getters](CefRefPtr<CefV8Value> & module_object)
+                            {
+                                ResultFunction fc = [copied_getters](CefRefPtr<CefV8Value>& retval, const CefV8ValueList&) {
+                                    T new_object;
+                                    ValueCreator<T>::create(retval, new_object);
+                                };
+
+                                CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(copied_name.c_str(), new FuncHandler(fc));
+                                module_object->SetValue(copied_name.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
+                            }
+                        );
+                }
+            #endif
+        }
+
+        ValueObject & constructor()
+        {
+            #ifdef EMSCRIPTEN
+                T ( * func )() =
+                    []() -> T
+                    {
+                        return T();
+                    };
+
+                emscripten::function(name.c_str(), func);
+            #else
+                registerConstructor = true;
+            #endif
+
+            return *this;
+        }
+
+        template<class F>
+        ValueObject & member(const char *name, F (T::*field))
+        {
+            #ifdef EMSCRIPTEN
+                emVo->field(name, field);
+            #else
+                getters[name] = [field](CefRefPtr<CefV8Value>& retval, void * object) {
+                    ValueCreator<F>::create(retval, (*(T *)object).*field);
+                };
+            #endif
+
+            return *this;
+        }
+
+        template<typename C>
+        friend class ValueCreator;
+
+    private:
+        static std::string
+            name;
+        #ifdef EMSCRIPTEN
+            emscripten::value_object<T>
+                * emVo;
+        #else
+            static std::map<std::string, GetterFunction>
+                getters;
+            bool
+                registerConstructor;
+        #endif
+    };
+
+    template<class T>
     class Class
     {
     public:
@@ -181,7 +270,7 @@ namespace embindcefv8
         friend class ValueCreator;
 
     private:
-        std::string
+        static std::string
             name;
         #ifdef EMSCRIPTEN
             emscripten::class_<T>
@@ -196,7 +285,16 @@ namespace embindcefv8
         #endif
     };
 
+    template<class T>
+    std::string ValueObject<T>::name;
+
+    template<class T>
+    std::string Class<T>::name;
+
     #ifdef CEF
+        template<class T>
+        std::map<std::string, GetterFunction> ValueObject<T>::getters;
+
         template<class T>
         std::map<std::string, GetterFunction> Class<T>::getters;
         template<class T>
@@ -209,23 +307,35 @@ namespace embindcefv8
             {
                 retval = CefV8Value::CreateObject(nullptr);
 
-                for(auto& kv : Class<T>::getters)
+                if(!ValueObject<T>::name.empty())
                 {
-                    CefRefPtr<CefV8Value> field_value;
-                    kv.second(field_value, (void*) &value);
-                    retval->SetValue(kv.first, field_value, V8_PROPERTY_ATTRIBUTE_NONE);
-                }
-
-                for(auto& kv : Class<T>::methods)
-                {
-                    auto copied_kv = kv;
-                    ResultFunction fc = [copied_kv, value](CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments) {
+                    for(auto& kv : ValueObject<T>::getters)
+                    {
                         CefRefPtr<CefV8Value> field_value;
-                        copied_kv.second(field_value, (void*) &value, arguments);
-                    };
+                        kv.second(field_value, (void*) &value);
+                        retval->SetValue(kv.first, field_value, V8_PROPERTY_ATTRIBUTE_NONE);
+                    }
+                }
+                else
+                {
+                    for(auto& kv : Class<T>::getters)
+                    {
+                        CefRefPtr<CefV8Value> field_value;
+                        kv.second(field_value, (void*) &value);
+                        retval->SetValue(kv.first, field_value, V8_PROPERTY_ATTRIBUTE_NONE);
+                    }
 
-                    CefRefPtr<CefV8Value> func = CefV8Value::CreateFunction(kv.first, new FuncHandler(fc));
-                    retval->SetValue(kv.first, func, V8_PROPERTY_ATTRIBUTE_NONE);
+                    for(auto& kv : Class<T>::methods)
+                    {
+                        auto copied_kv = kv;
+                        ResultFunction fc = [copied_kv, value](CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments) {
+                            CefRefPtr<CefV8Value> field_value;
+                            copied_kv.second(field_value, (void*) &value, arguments);
+                        };
+
+                        CefRefPtr<CefV8Value> func = CefV8Value::CreateFunction(kv.first, new FuncHandler(fc));
+                        retval->SetValue(kv.first, func, V8_PROPERTY_ATTRIBUTE_NONE);
+                    }
                 }
             }
         };

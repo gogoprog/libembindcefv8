@@ -19,13 +19,6 @@ struct AStruct
     {
     }
 
-    void aMethod()
-    {
-        floatMember *= 2;
-        intMember *= 2;
-        stringMember = "Another string";
-    }
-
     float
         floatMember;
     int
@@ -42,6 +35,13 @@ struct AStructContainer
     {
     }
 
+    void aMethod()
+    {
+        aMember.floatMember *= 2;
+        aMember.intMember *= 2;
+        aMember.stringMember = "Another string";
+    }
+
     AStruct
         aMember;
 };
@@ -49,17 +49,17 @@ struct AStructContainer
 int main(int argc, char* argv[])
 {
     {
-        embindcefv8::Class<AStruct>("AStruct")
+        embindcefv8::ValueObject<AStruct>("AStruct")
             .constructor()
             .member("floatMember", &AStruct::floatMember)
             .member("intMember", &AStruct::intMember)
             .member("stringMember", &AStruct::stringMember)
-            .method("aMethod", &AStruct::aMethod)
             ;
 
         embindcefv8::Class<AStructContainer>("AStructContainer")
             .constructor()
             .member("aMember", &AStructContainer::aMember)
+            .method("aMethod", &AStructContainer::aMethod)
             ;
     }
 
@@ -76,13 +76,13 @@ int main(int argc, char* argv[])
         console.log(test.intMember);
         console.log(test.stringMember);
 
+        test = Module.AStructContainer();
+        console.log(test.aMember.floatMember);
+        console.log(test.aMember.intMember);
+        console.log(test.aMember.stringMember);
+
         test.aMethod();
 
-        console.log(test.floatMember);
-        console.log(test.intMember);
-        console.log(test.stringMember);
-
-        test = Module.AStructContainer();
         console.log(test.aMember.floatMember);
         console.log(test.aMember.intMember);
         console.log(test.aMember.stringMember);
