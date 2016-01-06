@@ -16,10 +16,12 @@ namespace embindcefv8
     #ifdef CEF
         typedef std::function<void(CefRefPtr<CefV8Value>&)>
             Registerer;
-        typedef std::function<void(CefRefPtr<CefV8Value>&)>
+        typedef std::function<void(CefRefPtr<CefV8Value>&, const CefV8ValueList&)>
             ResultFunction;
         typedef std::function<void(CefRefPtr<CefV8Value>&, void*)>
             GetterFunction;
+        typedef std::function<void(CefRefPtr<CefV8Value>&, void*, const CefV8ValueList& arguments)>
+            MethodFunction;
 
         void onContextCreated(CefV8Context* context);
         std::vector<Registerer> & getRegisterers();
@@ -34,7 +36,7 @@ namespace embindcefv8
 
             virtual bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) override
             {
-                func(retval);
+                func(retval, arguments);
                 return true;
             }
 
@@ -76,24 +78,24 @@ namespace embindcefv8
     #endif
 
     template<class T>
-    class ValueObject
+    class Class
     {
     public:
-        ValueObject(const char *_name)
+        Class(const char *_name)
         {
             name = _name;
 
             #ifdef EMSCRIPTEN
-                vo = new emscripten::value_object<T>(_name);
+                emClass = new emscripten::class_<T>(_name);
             #else
                 registerConstructor = false;
             #endif
         }
 
-        ~ValueObject()
+        ~Class()
         {
             #ifdef EMSCRIPTEN
-                delete vo;
+                delete emClass;
             #else
                 if(registerConstructor)
                 {
@@ -103,7 +105,7 @@ namespace embindcefv8
                     getRegisterers().push_back(
                             [copied_name, copied_getters](CefRefPtr<CefV8Value> & module_object)
                             {
-                                ResultFunction fc = [copied_getters](CefRefPtr<CefV8Value>& retval) {
+                                ResultFunction fc = [copied_getters](CefRefPtr<CefV8Value>& retval, const CefV8ValueList&) {
                                     T new_object;
                                     ValueCreator<T>::create(retval, new_object);
                                 };
@@ -116,7 +118,7 @@ namespace embindcefv8
             #endif
         }
 
-        ValueObject & constructor()
+        Class & constructor()
         {
             #ifdef EMSCRIPTEN
                 T ( * func )() =
@@ -134,13 +136,41 @@ namespace embindcefv8
         }
 
         template<class F>
-        ValueObject & field(const char *fieldName, F (T::*field))
+        Class & member(const char *name, F (T::*field))
         {
             #ifdef EMSCRIPTEN
-                vo->field(fieldName, field);
+                emClass->property(name, field);
             #else
-                getters[fieldName] = [field](CefRefPtr<CefV8Value>& retval, void * object) {
+                getters[name] = [field](CefRefPtr<CefV8Value>& retval, void * object) {
                     ValueCreator<F>::create(retval, (*(T *)object).*field);
+                };
+            #endif
+
+            return *this;
+        }
+
+        template<typename R>
+        Class & method(const char *name, R (T::*field)())
+        {
+            #ifdef EMSCRIPTEN
+                emClass->function(name, field);
+            #else
+                methods[name] = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
+                    R result = ((*(T *) object)).*field();
+                    ValueCreator<R>::create(retval, result);
+                };
+            #endif
+
+            return *this;
+        }
+
+        Class & method(const char *name, void (T::*field)())
+        {
+            #ifdef EMSCRIPTEN
+                emClass->function(name, field);
+            #else
+                methods[name] = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
+                    ((*(T *) object).*field)();
                 };
             #endif
 
@@ -154,11 +184,13 @@ namespace embindcefv8
         std::string
             name;
         #ifdef EMSCRIPTEN
-            emscripten::value_object<T>
-                * vo;
+            emscripten::class_<T>
+                * emClass;
         #else
             static std::map<std::string, GetterFunction>
                 getters;
+            static std::map<std::string, MethodFunction>
+                methods;
             bool
                 registerConstructor;
         #endif
@@ -166,7 +198,9 @@ namespace embindcefv8
 
     #ifdef CEF
         template<class T>
-        std::map<std::string, GetterFunction> ValueObject<T>::getters;
+        std::map<std::string, GetterFunction> Class<T>::getters;
+        template<class T>
+        std::map<std::string, MethodFunction> Class<T>::methods;
 
         template<typename T>
         struct ValueCreator
@@ -175,11 +209,23 @@ namespace embindcefv8
             {
                 retval = CefV8Value::CreateObject(nullptr);
 
-                for(auto& kv : ValueObject<T>::getters)
+                for(auto& kv : Class<T>::getters)
                 {
                     CefRefPtr<CefV8Value> field_value;
                     kv.second(field_value, (void*) &value);
                     retval->SetValue(kv.first, field_value, V8_PROPERTY_ATTRIBUTE_NONE);
+                }
+
+                for(auto& kv : Class<T>::methods)
+                {
+                    auto copied_kv = kv;
+                    ResultFunction fc = [copied_kv, value](CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments) {
+                        CefRefPtr<CefV8Value> field_value;
+                        copied_kv.second(field_value, (void*) &value, arguments);
+                    };
+
+                    CefRefPtr<CefV8Value> func = CefV8Value::CreateFunction(kv.first, new FuncHandler(fc));
+                    retval->SetValue(kv.first, func, V8_PROPERTY_ATTRIBUTE_NONE);
                 }
             }
         };
