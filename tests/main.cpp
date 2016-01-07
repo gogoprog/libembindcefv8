@@ -35,27 +35,26 @@ struct AStructContainer
     {
     }
 
-    void aMethod()
+    void modifyMembers()
     {
         aMember.floatMember *= 2;
         aMember.intMember *= 2;
         aMember.stringMember = "Another string";
     }
 
+    void aMethod()
+    {
+        std::cout << "aMethod() called" << std::endl;
+    }
+
     void aMethod1(const int a)
     {
-        aMember.floatMember *= a;
-        aMember.intMember *= a;
-        aMember.stringMember = "Another string";
-        std::cout << "aMethod1() called" << std::endl;
+        std::cout << "aMethod1() called with " << a << std::endl;
     }
 
     void aMethod2(const int a, const int b)
     {
-        aMember.floatMember *= a;
-        aMember.intMember *= a;
-        aMember.stringMember = "Another string";
-        std::cout << "aMethod2() called" << std::endl;
+        std::cout << "aMethod2() called with " << a << ", " << b << std::endl;
     }
 
     AStruct
@@ -78,15 +77,13 @@ int main(int argc, char* argv[])
             .method("aMethod", &AStructContainer::aMethod)
             .method("aMethod1", &AStructContainer::aMethod1)
             .method("aMethod2", &AStructContainer::aMethod2)
+            .method("modifyMembers", &AStructContainer::modifyMembers)
             ;
     }
 
     #ifdef CEF
         initCef(argc, argv);
     #endif
-
-    std::cout << "[embindcefv8] Begin tests" << std::endl;
-    std::cout << "-------------------------" << std::endl;
 
     EXECUTE_JS(
         var test = Module.AStruct();
@@ -99,12 +96,13 @@ int main(int argc, char* argv[])
         console.log(test.aMember.intMember);
         console.log(test.aMember.stringMember);
 
-        test.aMethod();
+        test.modifyMembers();
 
         console.log(test.aMember.floatMember);
         console.log(test.aMember.intMember);
         console.log(test.aMember.stringMember);
 
+        test.aMethod();
         test.aMethod1(1);
         test.aMethod2(1, 2);
     );
@@ -113,9 +111,6 @@ int main(int argc, char* argv[])
     #ifdef CEF
         finalizeCef();
     #endif
-
-    std::cout << "-------------------------" << std::endl;
-    std::cout << "[embindcefv8] End tests" << std::endl;
 
     return 0;
 }

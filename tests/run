@@ -1,0 +1,11 @@
+#!/bin/bash
+
+echo "[embindcefv8] Running cefv8 tests..."
+
+./run_cef
+
+echo "[embindcefv8] Running emscripten tests..."
+
+./run_emscripten
+
+echo "[embindcefv8] Done"
