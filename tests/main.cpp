@@ -42,6 +42,22 @@ struct AStructContainer
         aMember.stringMember = "Another string";
     }
 
+    void aMethod1(const int a)
+    {
+        aMember.floatMember *= a;
+        aMember.intMember *= a;
+        aMember.stringMember = "Another string";
+        std::cout << "aMethod1() called" << std::endl;
+    }
+
+    void aMethod2(const int a, const int b)
+    {
+        aMember.floatMember *= a;
+        aMember.intMember *= a;
+        aMember.stringMember = "Another string";
+        std::cout << "aMethod2() called" << std::endl;
+    }
+
     AStruct
         aMember;
 };
@@ -60,6 +76,8 @@ int main(int argc, char* argv[])
             .constructor()
             .member("aMember", &AStructContainer::aMember)
             .method("aMethod", &AStructContainer::aMethod)
+            .method("aMethod1", &AStructContainer::aMethod1)
+            .method("aMethod2", &AStructContainer::aMethod2)
             ;
     }
 
@@ -86,6 +104,9 @@ int main(int argc, char* argv[])
         console.log(test.aMember.floatMember);
         console.log(test.aMember.intMember);
         console.log(test.aMember.stringMember);
+
+        test.aMethod1(1);
+        test.aMethod2(1, 2);
     );
 
 

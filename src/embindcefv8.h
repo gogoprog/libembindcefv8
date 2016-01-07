@@ -75,6 +75,56 @@ namespace embindcefv8
                 retval = CefV8Value::CreateString(value);
             }
         };
+
+        template<typename T>
+        struct ValueConverter;
+
+        template<>
+        struct ValueConverter<int>
+        {
+            static int get(CefV8Value & v)
+            {
+                return v.GetIntValue();
+            }
+        };
+
+        template<typename T, int arg_count, typename ... Args >
+        struct MethodInvoker
+        {
+            static void call(void (T::*field)(Args...), void * object, const CefV8ValueList& arguments)
+            {
+                ((*(T *) object).*field)();
+            }
+        };
+
+        template<typename T, typename ... Args>
+        struct MethodInvoker<T, 0, Args... >
+        {
+            static void call(void (T::*field)(Args...), void * object, const CefV8ValueList& arguments)
+            {
+                ((*(T *) object).*field)();
+            }
+        };
+
+        template<typename T, typename A0>
+        struct MethodInvoker<T, 1, A0 >
+        {
+            static void call(void (T::*field)(A0), void * object, const CefV8ValueList& arguments)
+            {
+                ((*(T *) object).*field)(ValueConverter<A0>::get(*arguments[0]));
+            }
+        };
+
+        template<typename T, typename A0, typename A1>
+        struct MethodInvoker<T, 2, A0, A1>
+        {
+            static void call(void (T::*field)(A0, A1), void * object, const CefV8ValueList& arguments)
+            {
+                ((*(T *) object).*field)(arguments[0]->GetIntValue(), arguments[1]->GetIntValue());
+            }
+        };
+
+
     #endif
 
     template<class T>
@@ -238,28 +288,14 @@ namespace embindcefv8
             return *this;
         }
 
-        template<typename R>
-        Class & method(const char *name, R (T::*field)())
+        template<typename ... Args>
+        Class & method(const char *name, void (T::*field)(Args...))
         {
             #ifdef EMSCRIPTEN
                 emClass->function(name, field);
             #else
                 methods[name] = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
-                    R result = ((*(T *) object)).*field();
-                    ValueCreator<R>::create(retval, result);
-                };
-            #endif
-
-            return *this;
-        }
-
-        Class & method(const char *name, void (T::*field)())
-        {
-            #ifdef EMSCRIPTEN
-                emClass->function(name, field);
-            #else
-                methods[name] = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
-                    ((*(T *) object).*field)();
+                    MethodInvoker<T, sizeof...(Args), Args...>::call(field, object, arguments);
                 };
             #endif
 
