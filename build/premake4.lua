@@ -1,7 +1,11 @@
 solution "libembindcefv8"
     configurations { "DebugCef", "ReleaseCef", "DebugEmscripten", "ReleaseEmscripten" }
 
-    platforms { "x32", "x64" }
+    if os.is("windows") then
+        platforms { "x32" }
+    else
+        platforms { "x64" }
+    end
 
     project "tests"
         kind "ConsoleApp"
