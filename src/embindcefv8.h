@@ -88,7 +88,8 @@ namespace embindcefv8
             }
         };
 
-        template<typename T, int arg_count, typename ... Args >
+
+        template<typename T, typename ... Args>
         struct MethodInvoker
         {
             static void call(void (T::*field)(Args...), void * object, const CefV8ValueList& arguments)
@@ -97,33 +98,69 @@ namespace embindcefv8
             }
         };
 
-        template<typename T, typename ... Args>
-        struct MethodInvoker<T, 0, Args... >
-        {
-            static void call(void (T::*field)(Args...), void * object, const CefV8ValueList& arguments)
-            {
-                ((*(T *) object).*field)();
-            }
-        };
-
         template<typename T, typename A0>
-        struct MethodInvoker<T, 1, A0 >
+        struct MethodInvoker<T, A0 >
         {
             static void call(void (T::*field)(A0), void * object, const CefV8ValueList& arguments)
             {
-                ((*(T *) object).*field)(ValueConverter<A0>::get(*arguments[0]));
+                ((*(T *) object).*field)(
+                    ValueConverter<A0>::get(*arguments[0])
+                    );
             }
         };
 
         template<typename T, typename A0, typename A1>
-        struct MethodInvoker<T, 2, A0, A1>
+        struct MethodInvoker<T, A0, A1>
         {
             static void call(void (T::*field)(A0, A1), void * object, const CefV8ValueList& arguments)
             {
-                ((*(T *) object).*field)(arguments[0]->GetIntValue(), arguments[1]->GetIntValue());
+                ((*(T *) object).*field)(
+                    ValueConverter<A0>::get(*arguments[0]),
+                    ValueConverter<A0>::get(*arguments[1])
+                    );
             }
         };
 
+        template<typename T, typename A0, typename A1, typename A2>
+        struct MethodInvoker<T, A0, A1, A2>
+        {
+            static void call(void (T::*field)(A0, A1, A2), void * object, const CefV8ValueList& arguments)
+            {
+                ((*(T *) object).*field)(
+                    ValueConverter<A0>::get(*arguments[0]),
+                    ValueConverter<A0>::get(*arguments[1]),
+                    ValueConverter<A0>::get(*arguments[2])
+                    );
+            }
+        };
+
+        template<typename T, typename A0, typename A1, typename A2, typename A3>
+        struct MethodInvoker<T, A0, A1, A2, A3>
+        {
+            static void call(void (T::*field)(A0, A1, A2, A3), void * object, const CefV8ValueList& arguments)
+            {
+                ((*(T *) object).*field)(
+                    ValueConverter<A0>::get(*arguments[0]),
+                    ValueConverter<A0>::get(*arguments[1]),
+                    ValueConverter<A0>::get(*arguments[2]),
+                    ValueConverter<A0>::get(*arguments[3])
+                    );
+            }
+        };
+
+        template<typename T, typename A0, typename A1, typename A2, typename A3, typename A4>
+        struct MethodInvoker<T, A0, A1, A2, A3, A4>
+        {
+            static void call(void (T::*field)(A0, A1, A2, A3, A4), void * object, const CefV8ValueList& arguments)
+            {
+                ((*(T *) object).*field)(
+                    ValueConverter<A0>::get(*arguments[0]),
+                    ValueConverter<A0>::get(*arguments[1]),
+                    ValueConverter<A0>::get(*arguments[2]),
+                    ValueConverter<A0>::get(*arguments[3])
+                    );
+            }
+        };
 
     #endif
 
@@ -295,7 +332,7 @@ namespace embindcefv8
                 emClass->function(name, field);
             #else
                 methods[name] = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
-                    MethodInvoker<T, sizeof...(Args), Args...>::call(field, object, arguments);
+                    MethodInvoker<T, Args...>::call(field, object, arguments);
                 };
             #endif
 
