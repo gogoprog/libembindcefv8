@@ -46,6 +46,27 @@ namespace embindcefv8
                 func;
         };
 
+        class ClassAccessor : public CefV8Accessor
+        {
+        public:
+            ClassAccessor() : CefV8Accessor()
+            {
+
+            }
+
+            virtual bool Get(const CefString& name, const CefRefPtr<CefV8Value> object, CefRefPtr<CefV8Value>& retval, CefString& exception) override
+            {
+                return false;
+            }
+
+            virtual bool Set(const CefString& name, const CefRefPtr<CefV8Value> object, const CefRefPtr<CefV8Value> value, CefString& exception) override
+            {
+                return false;
+            }
+
+            IMPLEMENT_REFCOUNTING(ClassAccessor);
+        };
+
         template<typename T>
         struct ValueCreator;
 
