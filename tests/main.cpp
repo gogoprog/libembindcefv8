@@ -61,25 +61,27 @@ struct AStructContainer
         aMember;
 };
 
+EMBINDCEFV8_BINDINGS(test)
+{
+    embindcefv8::ValueObject<AStruct>("AStruct")
+        .constructor()
+        .member("floatMember", &AStruct::floatMember)
+        .member("intMember", &AStruct::intMember)
+        .member("stringMember", &AStruct::stringMember)
+        ;
+
+    embindcefv8::Class<AStructContainer>("AStructContainer")
+        .constructor()
+        .member("aMember", &AStructContainer::aMember)
+        .method("aMethod", &AStructContainer::aMethod)
+        .method("aMethod1", &AStructContainer::aMethod1)
+        .method("aMethod2", &AStructContainer::aMethod2)
+        .method("modifyMembers", &AStructContainer::modifyMembers)
+        ;
+}
+
 int main(int argc, char* argv[])
 {
-    {
-        embindcefv8::ValueObject<AStruct>("AStruct")
-            .constructor()
-            .member("floatMember", &AStruct::floatMember)
-            .member("intMember", &AStruct::intMember)
-            .member("stringMember", &AStruct::stringMember)
-            ;
-
-        embindcefv8::Class<AStructContainer>("AStructContainer")
-            .constructor()
-            .member("aMember", &AStructContainer::aMember)
-            .method("aMethod", &AStructContainer::aMethod)
-            .method("aMethod1", &AStructContainer::aMethod1)
-            .method("aMethod2", &AStructContainer::aMethod2)
-            .method("modifyMembers", &AStructContainer::modifyMembers)
-            ;
-    }
 
     #ifdef CEF
         initCef(argc, argv);

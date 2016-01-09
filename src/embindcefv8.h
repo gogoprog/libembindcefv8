@@ -11,9 +11,24 @@
     #include <functional>
 #endif
 
+#ifdef EMSCRIPTEN
+    #define EMBINDCEFV8_BINDINGS EMSCRIPTEN_BINDINGS
+#else
+    #define EMBINDCEFV8_BINDINGS(name)\
+        static struct EmbindCefV8Initializer_##name {\
+            EmbindCefV8Initializer_##name() {\
+                embindcefv8::getInitializers()[std::string(#name)] = std::function<void()>(&EmbindCefV8Initializer_##name::init);\
+            }\
+            static void init();\
+        } EmbindCefV8Initializer_##name##_instance;\
+        void EmbindCefV8Initializer_##name::init()
+#endif
+
 namespace embindcefv8
 {
     #ifdef CEF
+        typedef std::function<void()>
+            Initializer;
         typedef std::function<void(CefRefPtr<CefV8Value>&)>
             Registerer;
         typedef std::function<void(CefRefPtr<CefV8Value>&, const CefV8ValueList&)>
@@ -23,6 +38,7 @@ namespace embindcefv8
         typedef std::function<void(CefRefPtr<CefV8Value>&, void*, const CefV8ValueList& arguments)>
             MethodFunction;
 
+        std::map<std::string, Initializer> & getInitializers();
         void onContextCreated(CefV8Context* context);
         std::vector<Registerer> & getRegisterers();
 
