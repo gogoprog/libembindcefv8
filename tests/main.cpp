@@ -31,7 +31,8 @@ struct AStructContainer
 {
     AStructContainer()
         :
-        aMember()
+        aMember(),
+        aInt(128)
     {
     }
 
@@ -59,6 +60,8 @@ struct AStructContainer
 
     AStruct
         aMember;
+    int
+        aInt;
 };
 
 EMBINDCEFV8_BINDINGS(test)
@@ -73,6 +76,7 @@ EMBINDCEFV8_BINDINGS(test)
     embindcefv8::Class<AStructContainer>("AStructContainer")
         .constructor()
         .member("aMember", &AStructContainer::aMember)
+        .member("aInt", &AStructContainer::aInt)
         .method("aMethod", &AStructContainer::aMethod)
         .method("aMethod1", &AStructContainer::aMethod1)
         .method("aMethod2", &AStructContainer::aMethod2)
@@ -94,6 +98,8 @@ int main(int argc, char* argv[])
         console.log(test.stringMember);
 
         test = Module.AStructContainer();
+        console.log(test.aInt);
+
         console.log(test.aMember.floatMember);
         console.log(test.aMember.intMember);
         console.log(test.aMember.stringMember);

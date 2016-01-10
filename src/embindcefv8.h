@@ -62,16 +62,28 @@ namespace embindcefv8
                 func;
         };
 
+        template<typename T>
+        class Class;
+
+        template<typename T>
         class ClassAccessor : public CefV8Accessor
         {
         public:
-            ClassAccessor() : CefV8Accessor()
+            ClassAccessor(T * _object) : CefV8Accessor(), owner(_object)
             {
 
             }
 
             virtual bool Get(const CefString& name, const CefRefPtr<CefV8Value> object, CefRefPtr<CefV8Value>& retval, CefString& exception) override
             {
+                auto it = Class<T>::getters.find(name);
+
+                if(it != Class<T>::getters.end())
+                {
+                    it->second(retval, owner);
+                    return true;
+                }
+
                 return false;
             }
 
@@ -81,6 +93,10 @@ namespace embindcefv8
             }
 
             IMPLEMENT_REFCOUNTING(ClassAccessor);
+
+        private:
+            T
+                * owner;
         };
 
         template<typename T>
@@ -224,12 +240,11 @@ namespace embindcefv8
                 if(registerConstructor)
                 {
                     auto copied_name = name;
-                    auto copied_getters = getters;
 
                     getRegisterers().push_back(
-                            [copied_name, copied_getters](CefRefPtr<CefV8Value> & module_object)
+                            [copied_name](CefRefPtr<CefV8Value> & module_object)
                             {
-                                ResultFunction fc = [copied_getters](CefRefPtr<CefV8Value>& retval, const CefV8ValueList&) {
+                                ResultFunction fc = [](CefRefPtr<CefV8Value>& retval, const CefV8ValueList&) {
                                     T new_object;
                                     ValueCreator<T>::create(retval, new_object);
                                 };
@@ -313,14 +328,13 @@ namespace embindcefv8
                 if(registerConstructor)
                 {
                     auto copied_name = name;
-                    auto copied_getters = getters;
 
                     getRegisterers().push_back(
-                            [copied_name, copied_getters](CefRefPtr<CefV8Value> & module_object)
+                            [copied_name](CefRefPtr<CefV8Value> & module_object)
                             {
-                                ResultFunction fc = [copied_getters](CefRefPtr<CefV8Value>& retval, const CefV8ValueList&) {
-                                    T new_object;
-                                    ValueCreator<T>::create(retval, new_object);
+                                ResultFunction fc = [](CefRefPtr<CefV8Value>& retval, const CefV8ValueList&) {
+                                    T * new_object = new T();
+                                    ValueCreator<T>::create(retval, * new_object);
                                 };
 
                                 CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(copied_name.c_str(), new FuncHandler(fc));
@@ -378,6 +392,8 @@ namespace embindcefv8
 
         template<typename C>
         friend class ValueCreator;
+        template<typename C>
+        friend class ClassAccessor;
 
     private:
         static std::string
@@ -428,11 +444,11 @@ namespace embindcefv8
                 }
                 else
                 {
+                    retval = CefV8Value::CreateObject(new ClassAccessor<T>(& value));
+
                     for(auto& kv : Class<T>::getters)
                     {
-                        CefRefPtr<CefV8Value> field_value;
-                        kv.second(field_value, (void*) &value);
-                        retval->SetValue(kv.first, field_value, V8_PROPERTY_ATTRIBUTE_NONE);
+                        retval->SetValue(kv.first, V8_ACCESS_CONTROL_DEFAULT, V8_PROPERTY_ATTRIBUTE_NONE);
                     }
 
                     for(auto& kv : Class<T>::methods)
