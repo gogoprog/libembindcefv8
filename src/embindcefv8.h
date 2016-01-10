@@ -275,7 +275,7 @@ namespace embindcefv8
         }
 
         template<class F>
-        ValueObject & member(const char *name, F (T::*field))
+        ValueObject & property(const char *name, F (T::*field))
         {
             #ifdef EMSCRIPTEN
                 emVo->field(name, field);
@@ -363,7 +363,7 @@ namespace embindcefv8
         }
 
         template<class F>
-        Class & member(const char *name, F (T::*field))
+        Class & property(const char *name, F (T::*field))
         {
             #ifdef EMSCRIPTEN
                 emClass->property(name, field);
