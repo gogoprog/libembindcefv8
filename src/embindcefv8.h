@@ -454,7 +454,7 @@ namespace embindcefv8
                     for(auto& kv : Class<T>::methods)
                     {
                         auto copied_kv = kv;
-                        ResultFunction fc = [copied_kv, value](CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments) {
+                        ResultFunction fc = [copied_kv, & value](CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments) {
                             CefRefPtr<CefV8Value> field_value;
                             copied_kv.second(field_value, (void*) &value, arguments);
                         };
