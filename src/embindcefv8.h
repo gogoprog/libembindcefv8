@@ -141,6 +141,42 @@ namespace embindcefv8
             }
         };
 
+        template<>
+        struct ValueConverter<float>
+        {
+            static float get(CefV8Value & v)
+            {
+                return float(v.GetDoubleValue());
+            }
+        };
+
+        template<>
+        struct ValueConverter<double>
+        {
+            static double get(CefV8Value & v)
+            {
+                return v.GetDoubleValue();
+            }
+        };
+
+        template<>
+        struct ValueConverter<const char *>
+        {
+            static const char * get(CefV8Value & v)
+            {
+                return v.GetStringValue().ToString().c_str();
+            }
+        };
+
+        template<>
+        struct ValueConverter<std::string>
+        {
+            static std::string get(CefV8Value & v)
+            {
+                return v.GetStringValue().ToString();
+            }
+        };
+
         template<typename T, typename ... Args>
         struct MethodInvoker
         {
