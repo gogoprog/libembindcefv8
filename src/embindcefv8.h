@@ -37,6 +37,8 @@ namespace embindcefv8
             GetterFunction;
         typedef std::function<void(CefRefPtr<CefV8Value>&, void*, const CefV8ValueList& arguments)>
             MethodFunction;
+        typedef std::function<void(void *&, const CefV8ValueList& arguments)>
+            ConstructorFunction;
 
         std::map<std::string, Initializer> & getInitializers();
         void onContextCreated(CefV8Context* context);
@@ -250,6 +252,26 @@ namespace embindcefv8
             }
         };
 
+        template<typename T, typename ... Args>
+        struct ConstructorInvoker
+        {
+            static T * call(const CefV8ValueList& arguments)
+            {
+                return new T();
+            }
+        };
+
+        template<typename T, typename A0>
+        struct ConstructorInvoker<T, A0>
+        {
+            static T * call(const CefV8ValueList& arguments)
+            {
+                return new T(
+                    ValueConverter<A0>::get(*arguments[0])
+                    );
+            }
+        };
+
     #endif
 
     template<class T>
@@ -292,13 +314,14 @@ namespace embindcefv8
             #endif
         }
 
+        template<typename ... Args>
         ValueObject & constructor()
         {
             #ifdef EMSCRIPTEN
-                T ( * func )() =
-                    []() -> T
+                T ( * func )(Args && ... args) =
+                    [](Args && ... args) -> T
                     {
-                        return T();
+                        return T(std::forward<Args&&>( args )...);
                     };
 
                 emscripten::function(name.c_str(), func);
@@ -365,33 +388,34 @@ namespace embindcefv8
                     auto copied_name = name;
 
                     getRegisterers().push_back(
-                            [copied_name](CefRefPtr<CefV8Value> & module_object)
-                            {
-                                ResultFunction fc = [](CefRefPtr<CefV8Value>& retval, const CefV8ValueList&) {
-                                    T * new_object = new T();
-                                    ValueCreator<T>::create(retval, * new_object);
-                                };
+                        [copied_name](CefRefPtr<CefV8Value> & module_object)
+                        {
+                            ResultFunction fc = [](CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments) {
+                                T * new_object;
+                                constructors[arguments.size()]((void*&)new_object, arguments);
+                                ValueCreator<T>::create(retval, * new_object);
+                            };
 
-                                CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(copied_name.c_str(), new FuncHandler(fc));
-                                module_object->SetValue(copied_name.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
-                            }
-                        );
+                            CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(copied_name.c_str(), new FuncHandler(fc));
+                            module_object->SetValue(copied_name.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
+                        }
+                    );
                 }
             #endif
         }
 
+        template<typename ... Args>
         Class & constructor()
         {
             #ifdef EMSCRIPTEN
-                T ( * func )() =
-                    []() -> T
-                    {
-                        return T();
-                    };
-
-                emscripten::function(name.c_str(), func);
+                emClass->template constructor<Args...>();
             #else
                 registerConstructor = true;
+
+                constructors[sizeof...(Args)] = [](void * & object, const CefV8ValueList& arguments) {
+                    T * new_object = ConstructorInvoker<T, Args...>::call(arguments);
+                    object = new_object;
+                };
             #endif
 
             return *this;
@@ -439,6 +463,8 @@ namespace embindcefv8
         #else
             static std::map<std::string, GetterFunction>
                 getters;
+            static std::map<int, ConstructorFunction>
+                constructors;
             static std::map<std::string, MethodFunction>
                 methods;
             bool
@@ -458,6 +484,8 @@ namespace embindcefv8
 
         template<class T>
         std::map<std::string, GetterFunction> Class<T>::getters;
+        template<class T>
+        std::map<int, ConstructorFunction> Class<T>::constructors;
         template<class T>
         std::map<std::string, MethodFunction> Class<T>::methods;
 

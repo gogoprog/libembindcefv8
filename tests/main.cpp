@@ -36,6 +36,14 @@ struct AStructContainer
     {
     }
 
+    AStructContainer(const int a)
+        :
+        aMember(),
+        aInt(a)
+    {
+        std::cout << "AStructContainer() constructor called with " << a << std::endl;
+    }
+
     void modifyMembers()
     {
         aMember.floatMember *= 2;
@@ -75,6 +83,7 @@ EMBINDCEFV8_BINDINGS(test)
 
     embindcefv8::Class<AStructContainer>("AStructContainer")
         .constructor()
+        .constructor<int>()
         .property("aMember", &AStructContainer::aMember)
         .property("aInt", &AStructContainer::aInt)
         .method("aMethod", &AStructContainer::aMethod)
@@ -86,7 +95,6 @@ EMBINDCEFV8_BINDINGS(test)
 
 int main(int argc, char* argv[])
 {
-
     #ifdef CEF
         initCef(argc, argv);
     #endif
@@ -97,7 +105,7 @@ int main(int argc, char* argv[])
         console.log(test.intMember);
         console.log(test.stringMember);
 
-        test = Module.AStructContainer();
+        test = new Module.AStructContainer();
         console.log(test.aInt);
 
         console.log(test.aMember.floatMember);
@@ -113,8 +121,9 @@ int main(int argc, char* argv[])
         test.aMethod();
         test.aMethod1(1);
         test.aMethod2(1, 2);
-    );
 
+        test = new Module.AStructContainer(6);
+    );
 
     #ifdef CEF
         finalizeCef();
