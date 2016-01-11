@@ -3,6 +3,7 @@
 
 #include "include/cef_client.h"
 #include "embindcefv8.h"
+#include <iostream>
 
 CefRefPtr<Handler>
     handler;
@@ -24,11 +25,45 @@ public:
     IMPLEMENT_REFCOUNTING(LocalV8Handler);
 };
 
+class LogHandler : public CefV8Handler {
+public:
+    LogHandler() {}
+
+    virtual bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) OVERRIDE
+    {
+        for(size_t i=0; i<arguments.size(); ++i)
+        {
+            auto & argument = * arguments[i];
+
+            if(argument.IsString())
+            {
+                std::cout << argument.GetStringValue().ToString();
+            }
+            else if(argument.IsInt())
+            {
+                std::cout << argument.GetIntValue();
+            }
+            else if(argument.IsDouble())
+            {
+                std::cout << argument.GetDoubleValue();
+            }
+        }
+
+        std::cout << std::endl;
+
+        return true;
+    }
+
+    IMPLEMENT_REFCOUNTING(LocalV8Handler);
+};
+
 void App::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
 {
-    CefRefPtr<CefV8Handler> stop_handler = new StopHandler();
-    CefRefPtr<CefV8Value> stop_func = CefV8Value::CreateFunction("stop", stop_handler);
+    CefRefPtr<CefV8Value> stop_func = CefV8Value::CreateFunction("stop", new StopHandler());
+    CefRefPtr<CefV8Value> log_func = CefV8Value::CreateFunction("stop", new LogHandler());
+
     context->GetGlobal()->SetValue("stop", stop_func, V8_PROPERTY_ATTRIBUTE_NONE);
+    context->GetGlobal()->GetValue("console")->SetValue("log", log_func, V8_PROPERTY_ATTRIBUTE_NONE);
 
     embindcefv8::onContextCreated(& * context);
 }

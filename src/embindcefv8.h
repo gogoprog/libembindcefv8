@@ -141,7 +141,6 @@ namespace embindcefv8
             }
         };
 
-
         template<typename T, typename ... Args>
         struct MethodInvoker
         {
@@ -152,7 +151,7 @@ namespace embindcefv8
         };
 
         template<typename T, typename A0>
-        struct MethodInvoker<T, A0 >
+        struct MethodInvoker<T, A0>
         {
             static void call(void (T::*field)(A0), void * object, const CefV8ValueList& arguments)
             {
