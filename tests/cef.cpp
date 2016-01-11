@@ -140,11 +140,6 @@ void executeJs(const char *src)
     {
         CefDoMessageLoopWork();
     }
-
-    for(int i=0; i<100; i++)
-    {
-        CefDoMessageLoopWork();
-    }
 }
 
 void finalizeCef()
