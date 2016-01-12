@@ -3,10 +3,8 @@
 #include "cef.h"
 
 #ifdef EMSCRIPTEN
-    #define EXECUTE_JS      EM_ASM
-#else
-    #define EXECUTE_JS(src) \
-        executeJs( #src "\nstop();" );
+    #define executeFile(file) \
+        EM_ASM( global.Module = Module; require('./main.js'); )
 #endif
 
 struct AStruct
@@ -95,37 +93,16 @@ EMBINDCEFV8_BINDINGS(test)
 
 int main(int argc, char* argv[])
 {
-    #ifdef CEF
-        initCef(argc, argv);
+    #ifdef EMSCRIPTEN
+        EM_ASM( global.Module = Module; var test = require('./kludjs.js'); global.test = test; require('./main.js'); );
+    #else
+        executeFile("kludjs.js");
+        executeFile("main.js");
     #endif
 
-    EXECUTE_JS(
-        var test = Module.AStruct();
-        console.log(test.floatMember);
-        console.log(test.intMember);
-        console.log(test.stringMember);
-
-        test = new Module.AStructContainer();
-        console.log(test.aInt);
-
-        console.log(test.aMember.floatMember);
-        console.log(test.aMember.intMember);
-        console.log(test.aMember.stringMember);
-
-        test.modifyMembers();
-
-        console.log(test.aMember.floatMember);
-        console.log(test.aMember.intMember);
-        console.log(test.aMember.stringMember);
-
-        test.aMethod();
-        test.aMethod1(1);
-        test.aMethod2(1, 2);
-
-        test = new Module.AStructContainer(6);
-    );
-
     #ifdef CEF
+        initCef(argc, argv);
+        processLoop();
         finalizeCef();
     #endif
 

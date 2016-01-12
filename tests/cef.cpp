@@ -4,6 +4,9 @@
 #include "include/cef_client.h"
 #include "embindcefv8.h"
 #include <iostream>
+#include <string>
+#include <fstream>
+#include <streambuf>
 
 CefRefPtr<Handler>
     handler;
@@ -11,6 +14,18 @@ CefRefPtr<CefBrowser>
     browser;
 bool
     mustProcess(true);
+std::vector<std::string>
+    filesToExecute;
+
+std::string getFileContent(const std::string & name)
+{
+    std::ifstream
+        i(name);
+    std::string
+        str((std::istreambuf_iterator<char>(i)), std::istreambuf_iterator<char>());
+
+    return str;
+}
 
 class StopHandler : public CefV8Handler {
 public:
@@ -19,6 +34,18 @@ public:
     virtual bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) OVERRIDE
     {
         mustProcess = false;
+        return true;
+    }
+
+    IMPLEMENT_REFCOUNTING(LocalV8Handler);
+};
+
+class RequireHandler : public CefV8Handler {
+public:
+    RequireHandler() {}
+
+    virtual bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) OVERRIDE
+    {
         return true;
     }
 
@@ -60,9 +87,11 @@ public:
 void App::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
 {
     CefRefPtr<CefV8Value> stop_func = CefV8Value::CreateFunction("stop", new StopHandler());
-    CefRefPtr<CefV8Value> log_func = CefV8Value::CreateFunction("stop", new LogHandler());
+    CefRefPtr<CefV8Value> require_func = CefV8Value::CreateFunction("require", new RequireHandler());
+    CefRefPtr<CefV8Value> log_func = CefV8Value::CreateFunction("log", new LogHandler());
 
     context->GetGlobal()->SetValue("stop", stop_func, V8_PROPERTY_ATTRIBUTE_NONE);
+    context->GetGlobal()->SetValue("require", require_func, V8_PROPERTY_ATTRIBUTE_NONE);
     context->GetGlobal()->GetValue("console")->SetValue("log", log_func, V8_PROPERTY_ATTRIBUTE_NONE);
 
     embindcefv8::onContextCreated(& * context);
@@ -77,6 +106,20 @@ void App::OnContextInitialized()
 
     CefBrowserSettings browser_settings;
     browser = CefBrowserHost::CreateBrowserSync(window_info, & * handler, "about:blank", browser_settings, nullptr);
+
+    std::string content = "";
+
+    for(auto f : filesToExecute)
+    {
+        content += "<script>";
+        content += getFileContent(f);
+        content += "</script>";
+    }
+
+    content += "<script>stop();</script>";
+
+    browser->GetMainFrame()->LoadString(content, "dummy");
+    embindcefv8::setBrowser(browser);
 }
 
 void App::OnRegisterCustomSchemes(CefRefPtr<CefSchemeRegistrar> registrar)
@@ -130,12 +173,10 @@ void initCef(int argc, char *argv[])
     CefInitialize(args, settings, app.get(), nullptr);
 }
 
-void executeJs(const char *src)
+void processLoop()
 {
-    CefRefPtr<CefFrame> frame = browser->GetMainFrame();
-    frame->ExecuteJavaScript(src, frame->GetURL(), 0);
-
     mustProcess = true;
+
     while(mustProcess)
     {
         CefDoMessageLoopWork();
@@ -145,6 +186,11 @@ void executeJs(const char *src)
 void finalizeCef()
 {
     CefShutdown();
+}
+
+void executeFile(const char *src)
+{
+    filesToExecute.push_back(src);
 }
 
 #endif
