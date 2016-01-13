@@ -39,7 +39,6 @@ struct AStructContainer
         aMember(),
         aInt(a)
     {
-        std::cout << "AStructContainer() constructor called with " << a << std::endl;
     }
 
     void modifyMembers()
@@ -51,17 +50,14 @@ struct AStructContainer
 
     void aMethod()
     {
-        std::cout << "aMethod() called" << std::endl;
     }
 
     void aMethod1(const int a)
     {
-        std::cout << "aMethod1() called with " << a << std::endl;
     }
 
     void aMethod2(const int a, const int b)
     {
-        std::cout << "aMethod2() called with " << a << ", " << b << std::endl;
     }
 
     AStruct

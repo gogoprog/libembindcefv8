@@ -1,39 +1,34 @@
 
-//var test = require('./kludjs.js');
+test('ValueObject', function() {
+	var o = Module.AStruct();
 
-function isEven(x) {
-	return x % 2 == 0;
-}
-
-test('Testing isEven', function() {
-	ok(isEven(0), 'Zero is even');
-	ok(isEven(1) == false, 'One is odd');
-	ok(isEven(12), 'Twelve is even');
+	ok(o.floatMember == 16, 'Float property');
+	ok(o.intMember == 1024, 'Int property');
+	ok(o.stringMember == "A sample string", 'String property');
 });
 
+test('Class - constructor0', function() {
+	var o = new Module.AStructContainer();
 
-/*
-var test = Module.AStruct();
-console.log(test.floatMember);
-console.log(test.intMember);
-console.log(test.stringMember);
+	ok(o.aInt == 128, 'Int property');
+	ok(o.aMember.floatMember == 16, 'ValueObject property');
+	ok(o.aMember.intMember == 1024, 'ValueObject property');
+	ok(o.aMember.stringMember == "A sample string", 'ValueObject property');
+});
 
-test = new Module.AStructContainer();
-console.log(test.aInt);
+test('Class - void methods', function() {
+	var o = new Module.AStructContainer();
 
-console.log(test.aMember.floatMember);
-console.log(test.aMember.intMember);
-console.log(test.aMember.stringMember);
+	ok(typeof o.aMethod() === "undefined", 'No argument');
+	ok(typeof o.aMethod1(1) === "undefined", '1 argument');
+	ok(typeof o.aMethod2(1, 2) === "undefined", '2 arguments');
+});
 
-test.modifyMembers();
+test('Class - modification', function() {
+	var o = new Module.AStructContainer();
 
-console.log(test.aMember.floatMember);
-console.log(test.aMember.intMember);
-console.log(test.aMember.stringMember);
-
-test.aMethod();
-test.aMethod1(1);
-test.aMethod2(1, 2);
-
-test = new Module.AStructContainer(6);
-*/
+	ok(typeof o.modifyMembers() === "undefined", 'Modifier method call');
+	ok(o.aMember.floatMember == 32, 'ValueObject property');
+	ok(o.aMember.intMember == 2048, 'ValueObject property');
+	ok(o.aMember.stringMember == "Another string", 'ValueObject property');
+});
