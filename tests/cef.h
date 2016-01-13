@@ -49,7 +49,7 @@ private:
 
 void initCef(int argc, char *argv[]);
 void finalizeCef();
-void executeJs(const char *src);
 void processLoop();
+void executeFile(const char *src);
 
 #endif

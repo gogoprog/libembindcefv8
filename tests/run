@@ -2,8 +2,9 @@
 
 echo "[embindcefv8] Running cefv8 tests..."
 
-./run_cef
+./run_cef 2>/dev/null
 
+echo ""
 echo "[embindcefv8] Running emscripten tests..."
 
 ./run_emscripten

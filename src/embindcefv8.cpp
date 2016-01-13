@@ -5,6 +5,8 @@ namespace embindcefv8
     #ifdef CEF
         std::vector<Registerer>
             registerers;
+        CefRefPtr<CefBrowser>
+            browser;
 
         std::map<std::string, Initializer> & getInitializers()
         {
@@ -30,16 +32,24 @@ namespace embindcefv8
             }
         }
 
+        void setBrowser(CefRefPtr<CefBrowser> _browser)
+        {
+            browser = _browser;
+        }
+
         std::vector<Registerer> & getRegisterers()
         {
             return registerers;
         }
     #endif
 
-    void execute(const char *str)
+    void executeJavaScript(const char *str)
     {
         #ifdef EMSCRIPTEN
             emscripten_run_script(str);
+        #else
+            CefRefPtr<CefFrame> frame = browser->GetMainFrame();
+            frame->ExecuteJavaScript(str, frame->GetURL(), 0);
         #endif
     }
 }

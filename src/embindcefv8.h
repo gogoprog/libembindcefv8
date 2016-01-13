@@ -42,6 +42,7 @@ namespace embindcefv8
 
         std::map<std::string, Initializer> & getInitializers();
         void onContextCreated(CefV8Context* context);
+        void setBrowser(CefRefPtr<CefBrowser> browser);
         std::vector<Registerer> & getRegisterers();
 
         class FuncHandler : public CefV8Handler
@@ -528,5 +529,5 @@ namespace embindcefv8
         };
     #endif
 
-    void execute(const char *str);
+    void executeJavaScript(const char *str);
 }
