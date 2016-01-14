@@ -1,9 +1,17 @@
 
-test('ValueObject', function() {
+test('ValueObject - constructor0', function() {
 	var o = Module.AStruct();
 
 	ok(o.floatMember == 16, 'Float property');
 	ok(o.intMember == 1024, 'Int property');
+	ok(o.stringMember == "A sample string", 'String property');
+});
+
+test('ValueObject - constructor1', function() {
+	var o = Module.AStruct(2);
+
+	ok(o.floatMember == 32, 'Float property');
+	ok(o.intMember == 2048, 'Int property');
 	ok(o.stringMember == "A sample string", 'String property');
 });
 

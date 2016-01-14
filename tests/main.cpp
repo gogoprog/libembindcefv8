@@ -17,6 +17,14 @@ struct AStruct
     {
     }
 
+    AStruct(const int i)
+        :
+        floatMember(16.0f * i),
+        intMember(1024 * i),
+        stringMember("A sample string")
+    {
+    }
+
     float
         floatMember;
     int
@@ -70,6 +78,7 @@ EMBINDCEFV8_BINDINGS(test)
 {
     embindcefv8::ValueObject<AStruct>("AStruct")
         .constructor()
+        .constructor<int>()
         .property("floatMember", &AStruct::floatMember)
         .property("intMember", &AStruct::intMember)
         .property("stringMember", &AStruct::stringMember)
