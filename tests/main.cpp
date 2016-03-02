@@ -68,6 +68,10 @@ struct AStructContainer
     {
     }
 
+    void aMethod3(const int a, const int b, const int c)
+    {
+    }
+
     AStruct
         aMember;
     int
@@ -92,6 +96,7 @@ EMBINDCEFV8_BINDINGS(test)
         .method("aMethod", &AStructContainer::aMethod)
         .method("aMethod1", &AStructContainer::aMethod1)
         .method("aMethod2", &AStructContainer::aMethod2)
+        .method("aMethod3", &AStructContainer::aMethod3)
         .method("modifyMembers", &AStructContainer::modifyMembers)
         ;
 }

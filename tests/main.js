@@ -30,6 +30,7 @@ test('Class - void methods', function() {
 	ok(typeof o.aMethod() === "undefined", 'No argument');
 	ok(typeof o.aMethod1(1) === "undefined", '1 argument');
 	ok(typeof o.aMethod2(1, 2) === "undefined", '2 arguments');
+	ok(typeof o.aMethod3(1, 2, 3) === "undefined", '3 arguments');
 });
 
 test('Class - modification', function() {
