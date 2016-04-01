@@ -92,6 +92,11 @@ struct AStructContainer
         return a * b * c;
     }
 
+    AStruct constructAStruct(const int v)
+    {
+        return AStruct(v);
+    }
+
     AStruct
         aMember;
     int
@@ -122,6 +127,7 @@ EMBINDCEFV8_BINDINGS(test)
         .method("resultMethod1", &AStructContainer::resultMethod1)
         .method("resultMethod2", &AStructContainer::resultMethod2)
         .method("resultMethod3", &AStructContainer::resultMethod3)
+        .method("constructAStruct", &AStructContainer::constructAStruct)
         ;
 }
 
