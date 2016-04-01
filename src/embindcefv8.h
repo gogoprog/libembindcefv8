@@ -180,7 +180,7 @@ namespace embindcefv8
             }
         };
 
-        template<typename T, typename ... Args>
+        template<typename T, typename Result, typename ... Args>
         struct MethodInvoker
         {
             static void call(void (T::*field)(Args...), void * object, const CefV8ValueList& arguments)
@@ -189,8 +189,17 @@ namespace embindcefv8
             }
         };
 
-        template<typename T, typename A0>
-        struct MethodInvoker<T, A0>
+        template<typename T, typename Result>
+        struct MethodInvoker<T, Result>
+        {
+            static void call(void (T::*field)(Args...), void * object, const CefV8ValueList& arguments)
+            {
+                ((*(T *) object).*field)();
+            }
+        };
+
+        template<typename T, typename Result, typename A0>
+        struct MethodInvoker<T, Result, A0>
         {
             static void call(void (T::*field)(A0), void * object, const CefV8ValueList& arguments)
             {
@@ -200,8 +209,8 @@ namespace embindcefv8
             }
         };
 
-        template<typename T, typename A0, typename A1>
-        struct MethodInvoker<T, A0, A1>
+        template<typename T, typename Result, typename A0, typename A1>
+        struct MethodInvoker<T, Result, A0, A1>
         {
             static void call(void (T::*field)(A0, A1), void * object, const CefV8ValueList& arguments)
             {
@@ -212,8 +221,8 @@ namespace embindcefv8
             }
         };
 
-        template<typename T, typename A0, typename A1, typename A2>
-        struct MethodInvoker<T, A0, A1, A2>
+        template<typename T, typename Result, typename A0, typename A1, typename A2>
+        struct MethodInvoker<T, Result, A0, A1, A2>
         {
             static void call(void (T::*field)(A0, A1, A2), void * object, const CefV8ValueList& arguments)
             {
@@ -225,8 +234,8 @@ namespace embindcefv8
             }
         };
 
-        template<typename T, typename A0, typename A1, typename A2, typename A3>
-        struct MethodInvoker<T, A0, A1, A2, A3>
+        template<typename T, typename Result, typename A0, typename A1, typename A2, typename A3>
+        struct MethodInvoker<T, Result, A0, A1, A2, A3>
         {
             static void call(void (T::*field)(A0, A1, A2, A3), void * object, const CefV8ValueList& arguments)
             {
@@ -239,8 +248,8 @@ namespace embindcefv8
             }
         };
 
-        template<typename T, typename A0, typename A1, typename A2, typename A3, typename A4>
-        struct MethodInvoker<T, A0, A1, A2, A3, A4>
+        template<typename T, typename Result, typename A0, typename A1, typename A2, typename A3, typename A4>
+        struct MethodInvoker<T, Result, A0, A1, A2, A3, A4>
         {
             static void call(void (T::*field)(A0, A1, A2, A3, A4), void * object, const CefV8ValueList& arguments)
             {
@@ -434,14 +443,14 @@ namespace embindcefv8
             return *this;
         }
 
-        template<typename ... Args>
-        Class & method(const char *name, void (T::*field)(Args...))
+        template<typename Result, typename ... Args>
+        Class & method(const char *name, Result (T::*field)(Args...))
         {
             #ifdef EMSCRIPTEN
                 emClass->function(name, field);
             #else
                 methods[name] = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
-                    MethodInvoker<T, Args...>::call(field, object, arguments);
+                    MethodInvoker<T, Result, Args...>::call(field, object, arguments);
                 };
             #endif
 

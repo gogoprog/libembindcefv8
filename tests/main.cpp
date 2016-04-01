@@ -72,6 +72,11 @@ struct AStructContainer
     {
     }
 
+    int resultMethod()
+    {
+        return 128;
+    }
+
     AStruct
         aMember;
     int
@@ -98,6 +103,7 @@ EMBINDCEFV8_BINDINGS(test)
         .method("aMethod2", &AStructContainer::aMethod2)
         .method("aMethod3", &AStructContainer::aMethod3)
         .method("modifyMembers", &AStructContainer::modifyMembers)
+        .method("resultMethod", &AStructContainer::resultMethod)
         ;
 }
 
