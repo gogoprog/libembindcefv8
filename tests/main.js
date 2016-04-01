@@ -45,5 +45,8 @@ test('Class - modification', function() {
 test('Class - result methods', function() {
     var o = new Module.AStructContainer();
 
-    ok(o.resultMethod() === 128, 'No argument');
+	ok(o.resultMethod() === 128, 'No argument');
+	ok(o.resultMethod1(4) === 4, '1 argument');
+	ok(o.resultMethod2(4, 2) === 8, '2 arguments');
+    ok(o.resultMethod3(4, 2, 3) === 24, '3 arguments');
 });

@@ -77,6 +77,21 @@ struct AStructContainer
         return 128;
     }
 
+    int resultMethod1(const int a)
+    {
+        return a;
+    }
+
+    int resultMethod2(const int a, const int b)
+    {
+        return a * b;
+    }
+
+    int resultMethod3(const int a, const int b, const int c)
+    {
+        return a * b * c;
+    }
+
     AStruct
         aMember;
     int
@@ -104,6 +119,9 @@ EMBINDCEFV8_BINDINGS(test)
         .method("aMethod3", &AStructContainer::aMethod3)
         .method("modifyMembers", &AStructContainer::modifyMembers)
         .method("resultMethod", &AStructContainer::resultMethod)
+        .method("resultMethod1", &AStructContainer::resultMethod1)
+        .method("resultMethod2", &AStructContainer::resultMethod2)
+        .method("resultMethod3", &AStructContainer::resultMethod3)
         ;
 }
 
