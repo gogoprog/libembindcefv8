@@ -36,6 +36,8 @@ namespace embindcefv8
             ResultFunction;
         typedef std::function<void(CefRefPtr<CefV8Value>&, void*)>
             GetterFunction;
+        typedef std::function<void(void*, const CefRefPtr<CefV8Value>&)>
+            SetterFunction;
         typedef std::function<void(CefRefPtr<CefV8Value>&, void*, const CefV8ValueList& arguments)>
             MethodFunction;
         typedef std::function<void(void *&, const CefV8ValueList& arguments)>
@@ -143,13 +145,33 @@ namespace embindcefv8
             }
         };
 
+        template<class T>
+        class ValueObject;
+
         template<typename T>
         struct ValueConverter
         {
             static T get(CefV8Value & v)
             {
-                auto userdata = v.GetUserData();
-                return * dynamic_cast<ClassAccessor<T> &>(*v.GetUserData()).getOwner();
+                if(!ValueObject<T>::name.empty())
+                {
+                    T
+                        result;
+
+                    for(auto& kv : ValueObject<T>::setters)
+                    {
+                        kv.second((void*) &result, v.GetValue(kv.first));
+                    }
+
+                    return result;
+                }
+                else
+                {
+                    auto userdata = v.GetUserData();
+                    return * dynamic_cast<ClassAccessor<T> &>(*v.GetUserData()).getOwner();
+                }
+
+                return *(T*)0;
             }
         };
 
@@ -457,6 +479,9 @@ namespace embindcefv8
                 getters[name] = [field](CefRefPtr<CefV8Value>& retval, void * object) {
                     ValueCreator<F>::create(retval, (*(T *)object).*field);
                 };
+                setters[name] = [field](void * object, const CefRefPtr<CefV8Value>& cef_value) {
+                    (*(T *)object).*field = ValueConverter<F>::get(*cef_value);
+                };
             #endif
 
             return *this;
@@ -464,6 +489,9 @@ namespace embindcefv8
 
         template<typename C>
         friend class ValueCreator;
+
+        template<typename C>
+        friend class ValueConverter;
 
     private:
         static std::string
@@ -474,6 +502,8 @@ namespace embindcefv8
         #else
             static std::map<std::string, GetterFunction>
                 getters;
+            static std::map<std::string, SetterFunction>
+                setters;
             static std::map<int, ConstructorFunction>
                 constructors;
         #endif
@@ -619,6 +649,8 @@ namespace embindcefv8
     #ifdef CEF
         template<class T>
         std::map<std::string, GetterFunction> ValueObject<T>::getters;
+        template<class T>
+        std::map<std::string, SetterFunction> ValueObject<T>::setters;
         template<class T>
         std::map<int, ConstructorFunction> ValueObject<T>::constructors;
 
