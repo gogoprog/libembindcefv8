@@ -648,4 +648,22 @@ namespace embindcefv8
     #endif
 
     void executeJavaScript(const char *str);
+
+    template<typename T>
+    void addGlobalObject(const T & object, const char *name)
+    {
+        std::string copied_name = name;
+        const T * copied_object = & object;
+
+        getRegisterers().push_back(
+            [copied_name, copied_object](CefRefPtr<CefV8Value> & module_object)
+            {
+                CefRefPtr<CefV8Value> new_value;
+
+                ValueCreator<T>::create(new_value, * copied_object);
+
+                module_object->SetValue(copied_name, new_value, V8_PROPERTY_ATTRIBUTE_NONE);
+            }
+            );
+    }
 }
