@@ -203,7 +203,8 @@ namespace embindcefv8
             static void call(Result (T::*field)(Args...), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
             {
                 const Result & r = ((*(T *) object).*field)();
-                ValueCreator<Result>::create(retval, const_cast<Result &>(r));
+                using type = typename std::remove_const<typename std::remove_reference<Result>::type>::type;
+                ValueCreator<type>::create(retval, const_cast<Result &>(r));
             }
 
             static void call(Result (T::*field)(Args...) const, void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
