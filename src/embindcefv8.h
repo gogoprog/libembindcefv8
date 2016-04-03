@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+#include <type_traits>
 
 #ifdef EMSCRIPTEN
     #include <emscripten.h>
@@ -118,7 +119,7 @@ namespace embindcefv8
         template<>
         struct ValueCreator<float>
         {
-            static void create(CefRefPtr<CefV8Value>& retval, float & value)
+            static void create(CefRefPtr<CefV8Value>& retval, const float value)
             {
                 retval = CefV8Value::CreateDouble(value);
             }
@@ -127,7 +128,7 @@ namespace embindcefv8
         template<>
         struct ValueCreator<int>
         {
-            static void create(CefRefPtr<CefV8Value>& retval, int & value)
+            static void create(CefRefPtr<CefV8Value>& retval, const int value)
             {
                 retval = CefV8Value::CreateInt(value);
             }
@@ -136,7 +137,7 @@ namespace embindcefv8
         template<>
         struct ValueCreator<std::string>
         {
-            static void create(CefRefPtr<CefV8Value>& retval, std::string & value)
+            static void create(CefRefPtr<CefV8Value>& retval, const std::string & value)
             {
                 retval = CefV8Value::CreateString(value);
             }
@@ -147,7 +148,7 @@ namespace embindcefv8
         {
             static T* get(CefV8Value & v)
             {
-                return dynamic_cast<ClassAccessor<T>>(v.GetUserData())->getOwner();
+                return dynamic_cast<ClassAccessor<T>*>(v.GetUserData())->getOwner();
             }
         };
 
@@ -205,6 +206,13 @@ namespace embindcefv8
                 ValueCreator<Result>::create(retval, const_cast<Result &>(r));
             }
 
+            static void call(Result (T::*field)(Args...) const, void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
+            {
+                const Result & r = ((*(T *) object).*field)();
+                using type = typename std::remove_const<typename std::remove_reference<Result>::type>::type;
+                ValueCreator<type>::create(retval, const_cast<Result &>(r));
+            }
+
             static void call(Result (T::*field)(Args...), void * object, const CefV8ValueList& arguments)
             {
                 ((*(T *) object).*field)();
@@ -225,8 +233,9 @@ namespace embindcefv8
 
             static void call(Result (T::*field)(A0), void * object, const CefV8ValueList& arguments)
             {
+                using nonconsttype = typename std::remove_const<A0>::type;
                 ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0])
+                    ValueConverter<nonconsttype>::get(*arguments[0])
                     );
             }
         };
@@ -526,6 +535,20 @@ namespace embindcefv8
             return *this;
         }
 
+        template<typename Result, typename ... Args>
+        Class & method(const char *name, Result (T::*field)(Args...) const)
+        {
+            #ifdef EMSCRIPTEN
+                emClass->function(name, field);
+            #else
+                methods[name] = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
+                    MethodInvoker<T, Result, Args...>::call(field, object, retval, arguments);
+                };
+            #endif
+
+            return *this;
+        }
+
         template<typename ... Args>
         Class & method(const char *name, void (T::*field)(Args...))
         {
@@ -583,7 +606,7 @@ namespace embindcefv8
         template<typename T>
         struct ValueCreator
         {
-            static void create(CefRefPtr<CefV8Value>& retval, T& value)
+            static void create(CefRefPtr<CefV8Value>& retval, const T& value)
             {
                 retval = CefV8Value::CreateObject(nullptr);
 
@@ -598,7 +621,8 @@ namespace embindcefv8
                 }
                 else
                 {
-                    auto class_accessor = new ClassAccessor<T>(& value);
+                    using type = typename std::remove_const<T>::type;
+                    auto class_accessor = new ClassAccessor<type>(const_cast<type*>(& value));
                     retval = CefV8Value::CreateObject(class_accessor);
 
                     retval->SetUserData(class_accessor);

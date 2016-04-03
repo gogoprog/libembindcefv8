@@ -37,6 +37,7 @@ solution "libembindcefv8"
 
         if os.is("linux") then
             defines { "_LINUX" }
+            linkoptions { "-Wl,-rpath=../deps/lib/"}
         elseif os.is("windows") then
             defines { "_WINDOWS", "NOMINMAX" }
             flags { "StaticRuntime" }
