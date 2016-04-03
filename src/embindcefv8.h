@@ -96,8 +96,6 @@ namespace embindcefv8
                 return false;
             }
 
-            IMPLEMENT_REFCOUNTING(ClassAccessor);
-
             T * getOwner()
             {
                 return owner;
@@ -107,6 +105,8 @@ namespace embindcefv8
             {
                 return owner;
             }
+
+            IMPLEMENT_REFCOUNTING(ClassAccessor);
 
         private:
             T
@@ -146,9 +146,10 @@ namespace embindcefv8
         template<typename T>
         struct ValueConverter
         {
-            static T* get(CefV8Value & v)
+            static T get(CefV8Value & v)
             {
-                return dynamic_cast<ClassAccessor<T>*>(v.GetUserData())->getOwner();
+                auto userdata = v.GetUserData();
+                return * dynamic_cast<ClassAccessor<T> &>(*v.GetUserData()).getOwner();
             }
         };
 
@@ -234,9 +235,9 @@ namespace embindcefv8
 
             static void call(Result (T::*field)(A0), void * object, const CefV8ValueList& arguments)
             {
-                using nonconsttype = typename std::remove_const<A0>::type;
+                using A0Type = typename std::remove_const<typename std::remove_reference<A0>::type>::type;
                 ((*(T *) object).*field)(
-                    ValueConverter<nonconsttype>::get(*arguments[0])
+                    ValueConverter<A0Type>::get(*arguments[0])
                     );
             }
         };
@@ -361,6 +362,30 @@ namespace embindcefv8
             }
         };
 
+        template<typename T, typename A0, typename A1>
+        struct ConstructorInvoker<T, A0, A1>
+        {
+            static T * call(const CefV8ValueList& arguments)
+            {
+                return new T(
+                    ValueConverter<A0>::get(*arguments[0]),
+                    ValueConverter<A1>::get(*arguments[1])
+                    );
+            }
+        };
+
+        template<typename T, typename A0, typename A1, typename A2>
+        struct ConstructorInvoker<T, A0, A1, A2>
+        {
+            static T * call(const CefV8ValueList& arguments)
+            {
+                return new T(
+                    ValueConverter<A0>::get(*arguments[0]),
+                    ValueConverter<A1>::get(*arguments[1]),
+                    ValueConverter<A1>::get(*arguments[2])
+                    );
+            }
+        };
     #endif
 
     template<class T>
