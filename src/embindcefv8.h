@@ -177,7 +177,7 @@ namespace embindcefv8
         template<class T>
         class ValueObject;
 
-        template<typename T>
+        template<typename T, class Enable = void>
         struct ValueConverter
         {
             static T get(CefV8Value & v)
@@ -196,11 +196,20 @@ namespace embindcefv8
                 }
                 else
                 {
-                    auto userdata = v.GetUserData();
                     return * dynamic_cast<ClassAccessor<T> &>(*v.GetUserData()).getOwner();
                 }
 
                 return *(T*)0;
+            }
+        };
+
+        template<typename T>
+        struct ValueConverter<T, typename std::enable_if<std::is_pointer<T>::value>::type>
+        {
+            static T get(CefV8Value & v)
+            {
+                using type = typename std::remove_pointer<T>::type;
+                return dynamic_cast<ClassAccessor<type> & >(*v.GetUserData()).getOwner();
             }
         };
 
@@ -228,6 +237,15 @@ namespace embindcefv8
             static float get(CefV8Value & v)
             {
                 return float(v.GetDoubleValue());
+            }
+        };
+
+        template<>
+        struct ValueConverter<bool>
+        {
+            static float get(CefV8Value & v)
+            {
+                return float(v.GetBoolValue());
             }
         };
 
@@ -538,7 +556,7 @@ namespace embindcefv8
         template<typename C>
         friend class ValueCreator;
 
-        template<typename C>
+        template<typename C, class>
         friend class ValueConverter;
 
     private:
