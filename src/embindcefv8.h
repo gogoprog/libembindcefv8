@@ -154,6 +154,26 @@ namespace embindcefv8
             }
         };
 
+        template<typename T, class Enable = void>
+        struct ValueCreatorCaller
+        {
+            static void create(CefRefPtr<CefV8Value>& retval, const T & value)
+            {
+                using type = typename std::remove_const<typename std::remove_reference<T>::type>::type;
+                ValueCreator<type>::create(retval, const_cast<type &>(value));
+            }
+        };
+
+        template<typename T>
+        struct ValueCreatorCaller<T, typename std::enable_if<std::is_pointer<T>::value>::type>
+        {
+            static void create(CefRefPtr<CefV8Value>& retval, const T & value)
+            {
+                using type = typename std::remove_const<typename std::remove_reference<typename std::remove_pointer<T>::type>::type>::type;
+                ValueCreator<type>::create(retval, const_cast<type &>(*value));
+            }
+        };
+
         template<class T>
         class ValueObject;
 
@@ -190,6 +210,15 @@ namespace embindcefv8
             static int get(CefV8Value & v)
             {
                 return v.GetIntValue();
+            }
+        };
+
+        template<>
+        struct ValueConverter<unsigned int>
+        {
+            static int get(CefV8Value & v)
+            {
+                return v.GetUIntValue();
             }
         };
 
@@ -235,15 +264,13 @@ namespace embindcefv8
             static void call(Result (T::*field)(Args...), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
             {
                 const Result & r = ((*(T *) object).*field)();
-                using type = typename std::remove_const<typename std::remove_reference<Result>::type>::type;
-                ValueCreator<type>::create(retval, const_cast<Result &>(r));
+                ValueCreatorCaller<Result>::create(retval, r);
             }
 
             static void call(Result (T::*field)(Args...) const, void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
             {
                 const Result & r = ((*(T *) object).*field)();
-                using type = typename std::remove_const<typename std::remove_reference<Result>::type>::type;
-                ValueCreator<type>::create(retval, const_cast<Result &>(r));
+                ValueCreatorCaller<Result>::create(retval, r);
             }
 
             static void call(Result (T::*field)(Args...), void * object, const CefV8ValueList& arguments)
@@ -261,9 +288,7 @@ namespace embindcefv8
                     ValueConverter<A0>::get(*arguments[0])
                     );
 
-                using type = typename std::remove_const<typename std::remove_reference<Result>::type>::type;
-
-                ValueCreator<type>::create(retval, const_cast<Result &>(r));
+                ValueCreatorCaller<Result>::create(retval, r);
             }
 
             static void call(Result (T::*field)(A0) const, void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
@@ -272,9 +297,7 @@ namespace embindcefv8
                     ValueConverter<A0>::get(*arguments[0])
                     );
 
-                using type = typename std::remove_const<typename std::remove_reference<Result>::type>::type;
-
-                ValueCreator<type>::create(retval, const_cast<Result &>(r));
+                ValueCreatorCaller<Result>::create(retval, r);
             }
 
             static void call(Result (T::*field)(A0), void * object, const CefV8ValueList& arguments)
@@ -291,12 +314,15 @@ namespace embindcefv8
         {
             static void call(Result (T::*field)(A0, A1), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
             {
+                using A0Type = typename std::remove_const<typename std::remove_reference<A0>::type>::type;
+                using A1Type = typename std::remove_const<typename std::remove_reference<A1>::type>::type;
+
                 const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1])
+                    ValueConverter<A0Type>::get(*arguments[0]),
+                    ValueConverter<A1Type>::get(*arguments[1])
                     );
 
-                ValueCreator<Result>::create(retval, const_cast<Result &>(r));
+                ValueCreatorCaller<Result>::create(retval, r);
             }
 
             static void call(Result (T::*field)(A0, A1), void * object, const CefV8ValueList& arguments)
@@ -319,7 +345,7 @@ namespace embindcefv8
                     ValueConverter<A2>::get(*arguments[2])
                     );
 
-                ValueCreator<Result>::create(retval, const_cast<Result &>(r));
+                ValueCreatorCaller<Result>::create(retval, r);
             }
 
             static void call(Result (T::*field)(A0, A1, A2), void * object, const CefV8ValueList& arguments)
@@ -344,7 +370,7 @@ namespace embindcefv8
                     ValueConverter<A3>::get(*arguments[3])
                     );
 
-                ValueCreator<Result>::create(retval, const_cast<Result &>(r));
+                ValueCreatorCaller<Result>::create(retval, r);
             }
 
             static void call(Result (T::*field)(A0, A1, A2, A3), void * object, const CefV8ValueList& arguments)
@@ -371,7 +397,7 @@ namespace embindcefv8
                     ValueConverter<A4>::get(*arguments[4])
                     );
 
-                ValueCreator<Result>::create(retval, const_cast<Result &>(r));
+                ValueCreatorCaller<Result>::create(retval, r);
             }
 
             static void call(Result (T::*field)(A0, A1, A2, A3, A4), void * object, const CefV8ValueList& arguments)
