@@ -137,6 +137,15 @@ namespace embindcefv8
         };
 
         template<>
+        struct ValueCreator<bool>
+        {
+            static void create(CefRefPtr<CefV8Value>& retval, const bool value)
+            {
+                retval = CefV8Value::CreateBool(value);
+            }
+        };
+
+        template<>
         struct ValueCreator<std::string>
         {
             static void create(CefRefPtr<CefV8Value>& retval, const std::string & value)
@@ -252,7 +261,20 @@ namespace embindcefv8
                     ValueConverter<A0>::get(*arguments[0])
                     );
 
-                ValueCreator<Result>::create(retval, const_cast<Result &>(r));
+                using type = typename std::remove_const<typename std::remove_reference<Result>::type>::type;
+
+                ValueCreator<type>::create(retval, const_cast<Result &>(r));
+            }
+
+            static void call(Result (T::*field)(A0) const, void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
+            {
+                const Result & r = ((*(T *) object).*field)(
+                    ValueConverter<A0>::get(*arguments[0])
+                    );
+
+                using type = typename std::remove_const<typename std::remove_reference<Result>::type>::type;
+
+                ValueCreator<type>::create(retval, const_cast<Result &>(r));
             }
 
             static void call(Result (T::*field)(A0), void * object, const CefV8ValueList& arguments)
