@@ -694,6 +694,25 @@ namespace embindcefv8
     template<class T>
     std::string Class<T>::name;
 
+    #define DECLARE_ENUM(Enum)\
+        namespace embindcefv8\
+        {\
+        template<> struct ValueCreator<Enum>\
+        {\
+            static void create(CefRefPtr<CefV8Value>& retval, const Enum value)\
+            {\
+                retval = CefV8Value::CreateInt((int)value);\
+            }\
+        };\
+        template<> struct ValueConverter<Enum>\
+        {\
+            static Enum get(CefV8Value & v)\
+            {\
+                return (Enum)v.GetIntValue();\
+            }\
+        };\
+        }
+
     #ifdef CEF
         template<class T>
         std::map<std::string, GetterFunction> ValueObject<T>::getters;
