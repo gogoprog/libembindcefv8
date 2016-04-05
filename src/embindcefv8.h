@@ -209,7 +209,7 @@ namespace embindcefv8
             static T get(CefV8Value & v)
             {
                 using type = typename std::remove_pointer<T>::type;
-                return dynamic_cast<ClassAccessor<type> & >(*v.GetUserData()).getOwner();
+                return dynamic_cast<ClassAccessor<type> &>(*v.GetUserData()).getOwner();
             }
         };
 
@@ -727,6 +727,25 @@ namespace embindcefv8
             static Enum get(CefV8Value & v)\
             {\
                 return (Enum)v.GetIntValue();\
+            }\
+        };\
+        }
+
+    #define DECLARE_STRING(Class, convert)\
+        namespace embindcefv8\
+        {\
+        template<> struct ValueCreator<Class>\
+        {\
+            static void create(CefRefPtr<CefV8Value>& retval, const Class value)\
+            {\
+                retval = CefV8Value::CreateString(value . convert ());\
+            }\
+        };\
+        template<> struct ValueConverter<Class>\
+        {\
+            static Class get(CefV8Value & v)\
+            {\
+                return v.GetStringValue().ToString().c_str();\
             }\
         };\
         }
