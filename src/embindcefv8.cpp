@@ -7,6 +7,10 @@ namespace embindcefv8
             registerers;
         CefRefPtr<CefBrowser>
             browser;
+        CefRefPtr<CefV8Context>
+            context;
+        CefRefPtr<CefV8Value>
+            moduleObject;
 
         std::map<std::string, Initializer> & getInitializers()
         {
@@ -16,10 +20,11 @@ namespace embindcefv8
             return initializers;
         }
 
-        void onContextCreated(CefV8Context *context)
+        void onContextCreated(CefV8Context *context_)
         {
-            CefRefPtr<CefV8Value> module_object = CefV8Value::CreateObject(nullptr);
-            context->GetGlobal()->SetValue("Module", module_object, V8_PROPERTY_ATTRIBUTE_NONE);
+            context = context_;
+            moduleObject = CefV8Value::CreateObject(nullptr);
+            context->GetGlobal()->SetValue("Module", moduleObject, V8_PROPERTY_ATTRIBUTE_NONE);
 
             for(auto& kv : getInitializers())
             {
@@ -28,13 +33,23 @@ namespace embindcefv8
 
             for(auto func : registerers)
             {
-                func(module_object);
+                func(moduleObject);
             }
         }
 
         void setBrowser(CefRefPtr<CefBrowser> _browser)
         {
             browser = _browser;
+        }
+
+        bool hasContext()
+        {
+            return context;
+        }
+
+        CefRefPtr<CefV8Value> & getModuleObject()
+        {
+            return moduleObject;
         }
 
         std::vector<Registerer> & getRegisterers()

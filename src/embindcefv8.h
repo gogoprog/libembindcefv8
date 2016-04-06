@@ -46,6 +46,8 @@ namespace embindcefv8
         std::map<std::string, Initializer> & getInitializers();
         void onContextCreated(CefV8Context* context);
         void setBrowser(CefRefPtr<CefBrowser> browser);
+        bool hasContext();
+        CefRefPtr<CefV8Value> & getModuleObject();
         std::vector<Registerer> & getRegisterers();
 
         class FuncHandler : public CefV8Handler
@@ -302,8 +304,10 @@ namespace embindcefv8
         {
             static void call(Result (T::*field)(A0), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
             {
+                using A0Type = typename std::remove_const<typename std::remove_reference<A0>::type>::type;
+
                 const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0])
+                    ValueConverter<A0Type>::get(*arguments[0])
                     );
 
                 ValueCreatorCaller<Result>::create(retval, r);
@@ -817,15 +821,24 @@ namespace embindcefv8
         std::string copied_name = name;
         const T * copied_object = & object;
 
-        getRegisterers().push_back(
-            [copied_name, copied_object](CefRefPtr<CefV8Value> & module_object)
-            {
-                CefRefPtr<CefV8Value> new_value;
+        if(hasContext())
+        {
+            CefRefPtr<CefV8Value> new_value;
+            ValueCreator<T>::create(new_value, * copied_object);
+            getModuleObject()->SetValue(copied_name, new_value, V8_PROPERTY_ATTRIBUTE_NONE);
+        }
+        else
+        {
+            getRegisterers().push_back(
+                [copied_name, copied_object](CefRefPtr<CefV8Value> & module_object)
+                {
+                    CefRefPtr<CefV8Value> new_value;
 
-                ValueCreator<T>::create(new_value, * copied_object);
+                    ValueCreator<T>::create(new_value, * copied_object);
 
-                module_object->SetValue(copied_name, new_value, V8_PROPERTY_ATTRIBUTE_NONE);
-            }
-            );
+                    module_object->SetValue(copied_name, new_value, V8_PROPERTY_ATTRIBUTE_NONE);
+                }
+                );
+        }
     }
 }
