@@ -211,6 +211,8 @@ namespace embindcefv8
             static T get(CefV8Value & v)
             {
                 using type = typename std::remove_pointer<T>::type;
+                const auto & udata = v.GetUserData();
+
                 return dynamic_cast<ClassAccessor<type> &>(*v.GetUserData()).getOwner();
             }
         };
@@ -325,6 +327,7 @@ namespace embindcefv8
             static void call(Result (T::*field)(A0), void * object, const CefV8ValueList& arguments)
             {
                 using A0Type = typename std::remove_const<typename std::remove_reference<A0>::type>::type;
+
                 ((*(T *) object).*field)(
                     ValueConverter<A0Type>::get(*arguments[0])
                     );
