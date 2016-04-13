@@ -213,7 +213,7 @@ namespace embindcefv8
                 using type = typename std::remove_pointer<T>::type;
                 const auto & udata = v.GetUserData();
 
-                return dynamic_cast<ClassAccessor<type> &>(*v.GetUserData()).getOwner();
+                return reinterpret_cast<ClassAccessor<type> &>(*v.GetUserData()).getOwner();
             }
         };
 
