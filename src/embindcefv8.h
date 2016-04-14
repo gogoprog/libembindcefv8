@@ -654,7 +654,7 @@ namespace embindcefv8
         Class & method(const char *name, Result (T::*field)(Args...))
         {
             #ifdef EMSCRIPTEN
-                emClass->function(name, field);
+                emClass->function(name, field, emscripten::allow_raw_pointers());
             #else
                 methods[name] = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
                     MethodInvoker<T, Result, Args...>::call(field, object, retval, arguments);
@@ -668,7 +668,7 @@ namespace embindcefv8
         Class & method(const char *name, Result (T::*field)(Args...) const)
         {
             #ifdef EMSCRIPTEN
-                emClass->function(name, field);
+                emClass->function(name, field, emscripten::allow_raw_pointers());
             #else
                 methods[name] = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
                     MethodInvoker<T, Result, Args...>::call(field, object, retval, arguments);
@@ -682,7 +682,7 @@ namespace embindcefv8
         Class & method(const char *name, void (T::*field)(Args...))
         {
             #ifdef EMSCRIPTEN
-                emClass->function(name, field);
+                emClass->function(name, field, emscripten::allow_raw_pointers());
             #else
                 methods[name] = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
                     MethodInvoker<T, void, Args...>::call(field, object, arguments);
@@ -719,45 +719,45 @@ namespace embindcefv8
     template<class T>
     std::string Class<T>::name;
 
-    #define DECLARE_ENUM(Enum)\
-        namespace embindcefv8\
-        {\
-        template<> struct ValueCreator<Enum>\
-        {\
-            static void create(CefRefPtr<CefV8Value>& retval, const Enum value)\
-            {\
-                retval = CefV8Value::CreateInt((int)value);\
-            }\
-        };\
-        template<> struct ValueConverter<Enum>\
-        {\
-            static Enum get(CefV8Value & v)\
-            {\
-                return (Enum)v.GetIntValue();\
-            }\
-        };\
-        }
-
-    #define DECLARE_STRING(Class, convert)\
-        namespace embindcefv8\
-        {\
-        template<> struct ValueCreator<Class>\
-        {\
-            static void create(CefRefPtr<CefV8Value>& retval, const Class value)\
-            {\
-                retval = CefV8Value::CreateString(value . convert ());\
-            }\
-        };\
-        template<> struct ValueConverter<Class>\
-        {\
-            static Class get(CefV8Value & v)\
-            {\
-                return v.GetStringValue().ToString().c_str();\
-            }\
-        };\
-        }
-
     #ifdef CEF
+        #define DECLARE_ENUM(Enum)\
+            namespace embindcefv8\
+            {\
+            template<> struct ValueCreator<Enum>\
+            {\
+                static void create(CefRefPtr<CefV8Value>& retval, const Enum value)\
+                {\
+                    retval = CefV8Value::CreateInt((int)value);\
+                }\
+            };\
+            template<> struct ValueConverter<Enum>\
+            {\
+                static Enum get(CefV8Value & v)\
+                {\
+                    return (Enum)v.GetIntValue();\
+                }\
+            };\
+            }
+
+        #define DECLARE_STRING(Class, convert)\
+            namespace embindcefv8\
+            {\
+            template<> struct ValueCreator<Class>\
+            {\
+                static void create(CefRefPtr<CefV8Value>& retval, const Class value)\
+                {\
+                    retval = CefV8Value::CreateString(value . convert ());\
+                }\
+            };\
+            template<> struct ValueConverter<Class>\
+            {\
+                static Class get(CefV8Value & v)\
+                {\
+                    return v.GetStringValue().ToString().c_str();\
+                }\
+            };\
+            }
+
         template<class T>
         std::map<std::string, GetterFunction> ValueObject<T>::getters;
         template<class T>
@@ -814,6 +814,9 @@ namespace embindcefv8
                 }
             }
         };
+    #else
+        #define DECLARE_ENUM(...)
+        #define DECLARE_STRING(...)
     #endif
 
     void executeJavaScript(const char *str);
@@ -821,27 +824,29 @@ namespace embindcefv8
     template<typename T>
     void addGlobalObject(const T & object, const char *name)
     {
-        std::string copied_name = name;
-        const T * copied_object = & object;
+        #ifdef CEF
+            std::string copied_name = name;
+            const T * copied_object = & object;
 
-        if(hasContext())
-        {
-            CefRefPtr<CefV8Value> new_value;
-            ValueCreator<T>::create(new_value, * copied_object);
-            getModuleObject()->SetValue(copied_name, new_value, V8_PROPERTY_ATTRIBUTE_NONE);
-        }
-        else
-        {
-            getRegisterers().push_back(
-                [copied_name, copied_object](CefRefPtr<CefV8Value> & module_object)
-                {
-                    CefRefPtr<CefV8Value> new_value;
+            if(hasContext())
+            {
+                CefRefPtr<CefV8Value> new_value;
+                ValueCreator<T>::create(new_value, * copied_object);
+                getModuleObject()->SetValue(copied_name, new_value, V8_PROPERTY_ATTRIBUTE_NONE);
+            }
+            else
+            {
+                getRegisterers().push_back(
+                    [copied_name, copied_object](CefRefPtr<CefV8Value> & module_object)
+                    {
+                        CefRefPtr<CefV8Value> new_value;
 
-                    ValueCreator<T>::create(new_value, * copied_object);
+                        ValueCreator<T>::create(new_value, * copied_object);
 
-                    module_object->SetValue(copied_name, new_value, V8_PROPERTY_ATTRIBUTE_NONE);
-                }
-                );
-        }
+                        module_object->SetValue(copied_name, new_value, V8_PROPERTY_ATTRIBUTE_NONE);
+                    }
+                    );
+            }
+        #endif
     }
 }
