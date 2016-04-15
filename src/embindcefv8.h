@@ -720,44 +720,6 @@ namespace embindcefv8
     std::string Class<T>::name;
 
     #ifdef CEF
-        #define DECLARE_ENUM(Enum)\
-            namespace embindcefv8\
-            {\
-            template<> struct ValueCreator<Enum>\
-            {\
-                static void create(CefRefPtr<CefV8Value>& retval, const Enum value)\
-                {\
-                    retval = CefV8Value::CreateInt((int)value);\
-                }\
-            };\
-            template<> struct ValueConverter<Enum>\
-            {\
-                static Enum get(CefV8Value & v)\
-                {\
-                    return (Enum)v.GetIntValue();\
-                }\
-            };\
-            }
-
-        #define DECLARE_STRING(Class, convert)\
-            namespace embindcefv8\
-            {\
-            template<> struct ValueCreator<Class>\
-            {\
-                static void create(CefRefPtr<CefV8Value>& retval, const Class value)\
-                {\
-                    retval = CefV8Value::CreateString(value . convert ());\
-                }\
-            };\
-            template<> struct ValueConverter<Class>\
-            {\
-                static Class get(CefV8Value & v)\
-                {\
-                    return v.GetStringValue().ToString().c_str();\
-                }\
-            };\
-            }
-
         template<class T>
         std::map<std::string, GetterFunction> ValueObject<T>::getters;
         template<class T>
@@ -814,9 +776,6 @@ namespace embindcefv8
                 }
             }
         };
-    #else
-        #define DECLARE_ENUM(...)
-        #define DECLARE_STRING(...)
     #endif
 
     void executeJavaScript(const char *str);
@@ -850,3 +809,83 @@ namespace embindcefv8
         #endif
     }
 }
+
+#ifdef EMSCRIPTEN
+    #define EMBINDCEFV8_DECLARE_CLASS(Class) \
+        namespace emscripten {\
+            namespace internal {\
+                template<>\
+                struct BindingType<const Class> : public BindingType<Class*> {\
+                };\
+                template<>\
+                struct BindingType<Class&> : public BindingType<Class*> {\
+                    typedef Class* WireType;\
+                    static WireType toWireType(Class& v) {\
+                        return (WireType)&v;\
+                    }\
+                    static Class & fromWireType(WireType wt) {\
+                        return *((Class *)wt);\
+                    }\
+                };\
+                template<>\
+                struct BindingType<const Class&> : public BindingType<Class*> {\
+                    typedef const Class* WireType;\
+                    static WireType toWireType(const Class& v) {\
+                        return (WireType)&v;\
+                    }\
+                    static const Class & fromWireType(WireType wt) {\
+                        return *((const Class *)wt);\
+                    }\
+                };\
+                template<>\
+                struct BindingType<Class>{\
+                    typedef int WireType;\
+                    static WireType toWireType(const Class& v) = delete;\
+                    static Class fromWireType(WireType wt) = delete;\
+                };\
+            }\
+        }
+
+    #define EMBINDCEFV8_DECLARE_ENUM(...)
+    #define EMBINDCEFV8_DECLARE_STRING(...)
+#else
+    #define EMBINDCEFV8_DECLARE_CLASS(...)
+
+    #define EMBINDCEFV8_DECLARE_ENUM(Enum)\
+        namespace embindcefv8\
+        {\
+        template<> struct ValueCreator<Enum>\
+        {\
+            static void create(CefRefPtr<CefV8Value>& retval, const Enum value)\
+            {\
+                retval = CefV8Value::CreateInt((int)value);\
+            }\
+        };\
+        template<> struct ValueConverter<Enum>\
+        {\
+            static Enum get(CefV8Value & v)\
+            {\
+                return (Enum)v.GetIntValue();\
+            }\
+        };\
+        }
+
+    #define EMBINDCEFV8_DECLARE_STRING(Class, convert)\
+        namespace embindcefv8\
+        {\
+        template<> struct ValueCreator<Class>\
+        {\
+            static void create(CefRefPtr<CefV8Value>& retval, const Class value)\
+            {\
+                retval = CefV8Value::CreateString(value . convert ());\
+            }\
+        };\
+        template<> struct ValueConverter<Class>\
+        {\
+            static Class get(CefV8Value & v)\
+            {\
+                return v.GetStringValue().ToString().c_str();\
+            }\
+        };\
+        }
+#endif
