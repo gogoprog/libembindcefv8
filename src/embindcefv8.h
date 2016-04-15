@@ -71,7 +71,7 @@ namespace embindcefv8
         };
 
         template<typename T>
-        class Class;
+        class _Class;
 
         template<typename T>
         class ClassAccessor : public CefV8Accessor
@@ -84,9 +84,9 @@ namespace embindcefv8
 
             virtual bool Get(const CefString& name, const CefRefPtr<CefV8Value> object, CefRefPtr<CefV8Value>& retval, CefString& exception) override
             {
-                auto it = Class<T>::getters.find(name);
+                auto it = _Class<T>::getters.find(name);
 
-                if(it != Class<T>::getters.end())
+                if(it != _Class<T>::getters.end())
                 {
                     it->second(retval, owner);
                     return true;
@@ -583,10 +583,12 @@ namespace embindcefv8
     };
 
     template<class T>
-    class Class
+    class _Class
     {
     public:
-        Class(const char *_name)
+        _Class() = default;
+
+        _Class(const char *_name)
         {
             name = _name;
 
@@ -595,7 +597,7 @@ namespace embindcefv8
             #endif
         }
 
-        ~Class()
+        ~_Class()
         {
             #ifdef EMSCRIPTEN
                 delete emClass;
@@ -622,7 +624,7 @@ namespace embindcefv8
         }
 
         template<typename ... Args>
-        Class & constructor()
+        _Class & constructor()
         {
             #ifdef EMSCRIPTEN
                 emClass->template constructor<Args...>();
@@ -637,7 +639,7 @@ namespace embindcefv8
         }
 
         template<class F>
-        Class & property(const char *name, F (T::*field))
+        _Class & property(const char *name, F (T::*field))
         {
             #ifdef EMSCRIPTEN
                 emClass->property(name, field);
@@ -651,7 +653,7 @@ namespace embindcefv8
         }
 
         template<typename Result, typename ... Args>
-        Class & method(const char *name, Result (T::*field)(Args...))
+        _Class & method(const char *name, Result (T::*field)(Args...))
         {
             #ifdef EMSCRIPTEN
                 emClass->function(name, field, emscripten::allow_raw_pointers());
@@ -665,7 +667,7 @@ namespace embindcefv8
         }
 
         template<typename Result, typename ... Args>
-        Class & method(const char *name, Result (T::*field)(Args...) const)
+        _Class & method(const char *name, Result (T::*field)(Args...) const)
         {
             #ifdef EMSCRIPTEN
                 emClass->function(name, field, emscripten::allow_raw_pointers());
@@ -679,7 +681,7 @@ namespace embindcefv8
         }
 
         template<typename ... Args>
-        Class & method(const char *name, void (T::*field)(Args...))
+        _Class & method(const char *name, void (T::*field)(Args...))
         {
             #ifdef EMSCRIPTEN
                 emClass->function(name, field, emscripten::allow_raw_pointers());
@@ -697,7 +699,7 @@ namespace embindcefv8
         template<typename C>
         friend class ClassAccessor;
 
-    private:
+    //private:
         static std::string
             name;
         #ifdef EMSCRIPTEN
@@ -711,13 +713,93 @@ namespace embindcefv8
             static std::map<std::string, MethodFunction>
                 methods;
         #endif
+
+
+    };
+
+    template<class T, class B = void>
+    class Class : public _Class<T>
+    {
+    public:
+        Class(const char *_name)
+        {
+            _Class<T>::name = _name;
+
+            #ifdef EMSCRIPTEN
+                emClass = new emscripten::class_<T, emscripten::base<B>>(_name);
+            #endif
+        }
+
+        #if EMSCRIPTEN
+            ~Class()
+            {
+                delete emClass;
+            }
+
+            template<typename ... Args>
+            Class & constructor()
+            {
+                emClass->template constructor<Args...>();
+
+                return *this;
+            }
+
+            template<class F>
+            Class & property(const char *name, F (T::*field))
+            {
+                emClass->property(name, field);
+
+                return *this;
+            }
+
+            template<typename Result, typename ... Args>
+            Class & method(const char *name, Result (T::*field)(Args...))
+            {
+                emClass->function(name, field, emscripten::allow_raw_pointers());
+
+                return *this;
+            }
+
+            template<typename Result, typename ... Args>
+            Class & method(const char *name, Result (T::*field)(Args...) const)
+            {
+                emClass->function(name, field, emscripten::allow_raw_pointers());
+
+                return *this;
+            }
+
+            template<typename ... Args>
+            Class & method(const char *name, void (T::*field)(Args...))
+            {
+                emClass->function(name, field, emscripten::allow_raw_pointers());
+
+                return *this;
+            }
+
+            emscripten::class_<T, emscripten::base<B>>
+                * emClass;
+        #endif
+    };
+
+    template<class T>
+    class Class<T, void> : public _Class<T>
+    {
+    public:
+        Class(const char *_name)
+        {
+            _Class<T>::name = _name;
+
+            #ifdef EMSCRIPTEN
+                _Class<T>::emClass = new emscripten::class_<T>(_name);
+            #endif
+        }
     };
 
     template<class T>
     std::string ValueObject<T>::name;
 
     template<class T>
-    std::string Class<T>::name;
+    std::string _Class<T>::name;
 
     #ifdef CEF
         template<class T>
@@ -728,11 +810,11 @@ namespace embindcefv8
         std::map<int, ConstructorFunction> ValueObject<T>::constructors;
 
         template<class T>
-        std::map<std::string, GetterFunction> Class<T>::getters;
+        std::map<std::string, GetterFunction> _Class<T>::getters;
         template<class T>
-        std::map<int, ConstructorFunction> Class<T>::constructors;
+        std::map<int, ConstructorFunction> _Class<T>::constructors;
         template<class T>
-        std::map<std::string, MethodFunction> Class<T>::methods;
+        std::map<std::string, MethodFunction> _Class<T>::methods;
 
         template<typename T>
         struct ValueCreator
@@ -758,12 +840,12 @@ namespace embindcefv8
 
                     retval->SetUserData(class_accessor);
 
-                    for(auto& kv : Class<T>::getters)
+                    for(auto& kv : _Class<T>::getters)
                     {
                         retval->SetValue(kv.first, V8_ACCESS_CONTROL_DEFAULT, V8_PROPERTY_ATTRIBUTE_NONE);
                     }
 
-                    for(auto& kv : Class<T>::methods)
+                    for(auto& kv : _Class<T>::methods)
                     {
                         auto copied_kv = kv;
                         ResultFunction fc = [copied_kv, & value](CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments) {
@@ -856,8 +938,9 @@ namespace embindcefv8
                     static Class fromWireType(WireType wt) = delete;\
                 };\
             }\
-        }\
-        //extern template struct emscripten::internal::TypeID<Class>;\
+        }
+
+        //extern template struct emscripten::internal::TypeID<Class>;
         //extern template emscripten::internal::TYPEID emscripten::internal::TypeID<Class>::get();
 
     #define EMBINDCEFV8_DECLARE_ENUM(Enum)\
