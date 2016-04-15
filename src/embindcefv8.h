@@ -586,7 +586,12 @@ namespace embindcefv8
     class _Class
     {
     public:
-        _Class() = default;
+        _Class()
+        {
+            #ifdef EMSCRIPTEN
+                emClass = nullptr;
+            #endif
+        }
 
         _Class(const char *_name)
         {
@@ -600,7 +605,8 @@ namespace embindcefv8
         ~_Class()
         {
             #ifdef EMSCRIPTEN
-                delete emClass;
+                if(emClass)
+                    delete emClass;
             #else
                 if(constructors.size())
                 {
@@ -730,10 +736,11 @@ namespace embindcefv8
             #endif
         }
 
-        #if EMSCRIPTEN
+        #ifdef EMSCRIPTEN
             ~Class()
             {
-                delete emClass;
+                if(emClass)
+                    delete emClass;
             }
 
             template<typename ... Args>
