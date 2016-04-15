@@ -817,10 +817,10 @@ namespace embindcefv8
         namespace emscripten {\
             namespace internal {\
                 template<>\
-                struct BindingType<const Class> : public BindingType<Class*> {\
+                struct BindingType<const Class> {\
                 };\
                 template<>\
-                struct BindingType<Class&> : public BindingType<Class*> {\
+                struct BindingType<Class&> {\
                     typedef Class* WireType;\
                     static WireType toWireType(Class& v) {\
                         return (WireType)&v;\
@@ -830,7 +830,17 @@ namespace embindcefv8
                     }\
                 };\
                 template<>\
-                struct BindingType<const Class&> : public BindingType<Class*> {\
+                struct BindingType<Class*>{\
+                    typedef Class* WireType;\
+                    static WireType toWireType(Class* v) {\
+                        return (WireType)v;\
+                    }\
+                    static Class* fromWireType(WireType wt) {\
+                        return ((Class *)wt);\
+                    }\
+                };\
+                template<>\
+                struct BindingType<const Class&> {\
                     typedef const Class* WireType;\
                     static WireType toWireType(const Class& v) {\
                         return (WireType)&v;\
@@ -846,10 +856,43 @@ namespace embindcefv8
                     static Class fromWireType(WireType wt) = delete;\
                 };\
             }\
+        }\
+        //extern template struct emscripten::internal::TypeID<Class>;\
+        //extern template emscripten::internal::TYPEID emscripten::internal::TypeID<Class>::get();
+
+    #define EMBINDCEFV8_DECLARE_ENUM(Enum)\
+        EMSCRIPTEN_BINDINGS(Enum##_emscripten_binding) \
+        { \
+            emscripten::internal::_embind_register_integer(emscripten::internal::TypeID<Enum>::get(), #Enum, sizeof(int), std::numeric_limits<int>::min(), std::numeric_limits<int>::max());\
         }
 
-    #define EMBINDCEFV8_DECLARE_ENUM(...)
-    #define EMBINDCEFV8_DECLARE_STRING(...)
+    #define EMBINDCEFV8_DECLARE_STRING(Class, convert) \
+        namespace emscripten {\
+            namespace internal {\
+                template<>\
+                struct BindingType<Class> {\
+                    typedef struct {\
+                        size_t length;\
+                        char data[1];\
+                    } * WireType;\
+                    static WireType toWireType(const Class& v) {\
+                        auto length = strlen(v.convert());\
+                        WireType wt = (WireType)malloc(sizeof(size_t) + length);\
+                        wt->length = length;\
+                        memcpy(wt->data, v.convert(), length);\
+                        return wt;\
+                    }\
+                    static Class fromWireType(WireType v) {\
+                        return Class(v->data, v->length);\
+                    }\
+                };\
+            }\
+        }
+
+    #define EMBINDCEFV8_IMPLEMENT_STRING(Class) \
+        EMSCRIPTEN_BINDINGS(Class) {\
+            emscripten::internal::_embind_register_std_string(emscripten::internal::TypeID<Class>::get(), #Class);\
+        }
 #else
     #define EMBINDCEFV8_DECLARE_CLASS(...)
 
@@ -890,4 +933,6 @@ namespace embindcefv8
             }\
         };\
         }
+
+    #define EMBINDCEFV8_IMPLEMENT_STRING(Class)
 #endif
