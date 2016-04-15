@@ -806,6 +806,8 @@ namespace embindcefv8
                     }
                     );
             }
+        #else
+            emscripten::val::global( "Module" ).set( name, emscripten::val( object ) );
         #endif
     }
 }
