@@ -352,9 +352,12 @@ namespace embindcefv8
 
             static void call(Result (T::*field)(A0, A1), void * object, const CefV8ValueList& arguments)
             {
+                using A0Type = typename std::remove_const<typename std::remove_reference<A0>::type>::type;
+                using A1Type = typename std::remove_const<typename std::remove_reference<A1>::type>::type;
+
                 ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1])
+                    ValueConverter<A0Type>::get(*arguments[0]),
+                    ValueConverter<A1Type>::get(*arguments[1])
                     );
             }
         };
