@@ -573,7 +573,7 @@ namespace embindcefv8
                 emVo->field(name, field);
             #else
                 getters[name] = [field](CefRefPtr<CefV8Value>& retval, void * object) {
-                    ValueCreator<F>::create(retval, (*(T *)object).*field);
+                    ValueCreatorCaller<F>::create(retval, (*(T *)object).*field);
                 };
                 setters[name] = [field](void * object, const CefRefPtr<CefV8Value>& cef_value) {
                     (*(T *)object).*field = ValueConverter<F>::get(*cef_value);
@@ -674,7 +674,7 @@ namespace embindcefv8
                 emClass->property(name, field);
             #else
                 getters[name] = [field](CefRefPtr<CefV8Value>& retval, void * object) {
-                    ValueCreator<F>::create(retval, (*(T *)object).*field);
+                    ValueCreatorCaller<F>::create(retval, (*(T *)object).*field);
                 };
             #endif
 
