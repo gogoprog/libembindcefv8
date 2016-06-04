@@ -72,14 +72,15 @@ namespace embindcefv8
 
         template<typename T>
         class _Class;
+        template<typename T>
+        class UserData;
 
         template<typename T>
         class ClassAccessor : public CefV8Accessor
         {
         public:
-            ClassAccessor(T * _object) : CefV8Accessor(), owner(_object)
+            ClassAccessor() : CefV8Accessor()
             {
-
             }
 
             virtual bool Get(const CefString& name, const CefRefPtr<CefV8Value> object, CefRefPtr<CefV8Value>& retval, CefString& exception) override
@@ -88,7 +89,7 @@ namespace embindcefv8
 
                 if(it != _Class<T>::getters.end())
                 {
-                    it->second(retval, owner);
+                    it->second(retval, reinterpret_cast<UserData<T> &>(*object->GetUserData()).data);
                     return true;
                 }
 
@@ -100,21 +101,7 @@ namespace embindcefv8
                 return false;
             }
 
-            T * getOwner()
-            {
-                return owner;
-            }
-
-            const T * getOwner() const
-            {
-                return owner;
-            }
-
             IMPLEMENT_REFCOUNTING(ClassAccessor);
-
-        private:
-            T
-                * owner;
         };
 
         template<typename T>
@@ -178,6 +165,8 @@ namespace embindcefv8
 
         template<class T>
         class ValueObject;
+        template<class T>
+        class UserData;
 
         template<typename T, class Enable = void>
         struct ValueConverter
@@ -198,7 +187,7 @@ namespace embindcefv8
                 }
                 else
                 {
-                    return * dynamic_cast<ClassAccessor<T> &>(*v.GetUserData()).getOwner();
+                    return * dynamic_cast<UserData<T> &>(*v.GetUserData()).data;
                 }
 
                 return *(T*)0;
@@ -211,9 +200,8 @@ namespace embindcefv8
             static T get(CefV8Value & v)
             {
                 using type = typename std::remove_pointer<T>::type;
-                const auto & udata = v.GetUserData();
 
-                return reinterpret_cast<ClassAccessor<type> &>(*v.GetUserData()).getOwner();
+                return reinterpret_cast<UserData<type> &>(*v.GetUserData()).data;
             }
         };
 
@@ -745,6 +733,8 @@ namespace embindcefv8
                 constructors;
             static std::map<std::string, MethodFunction>
                 methods;
+            static CefRefPtr<ClassAccessor<T>>
+                classAccessor;
         #endif
 
 
@@ -849,6 +839,27 @@ namespace embindcefv8
         std::map<int, ConstructorFunction> _Class<T>::constructors;
         template<class T>
         std::map<std::string, MethodFunction> _Class<T>::methods;
+        template<class T>
+        CefRefPtr<ClassAccessor<T>> _Class<T>::classAccessor = new ClassAccessor<T>();
+
+        template<typename T>
+        struct UserData : public CefBase
+        {
+            UserData(T * _data)
+                : data(_data)
+            {
+            }
+
+            UserData(const T * _data)
+                : data(const_cast<T*>(_data))
+            {
+            }
+
+            T
+                * data;
+
+            IMPLEMENT_REFCOUNTING(UserData);
+        };
 
         template<typename T>
         struct ValueCreator
@@ -869,10 +880,9 @@ namespace embindcefv8
                 else
                 {
                     using type = typename std::remove_const<T>::type;
-                    auto class_accessor = new ClassAccessor<type>(const_cast<type*>(& value));
-                    retval = CefV8Value::CreateObject(class_accessor);
+                    retval = CefV8Value::CreateObject(&*_Class<T>::classAccessor);
 
-                    retval->SetUserData(class_accessor);
+                    retval->SetUserData(new UserData<type>(& value));
 
                     for(auto& kv : _Class<T>::getters)
                     {
