@@ -855,10 +855,10 @@ namespace embindcefv8
         {
             static void create(CefRefPtr<CefV8Value>& retval, const T& value)
             {
-                retval = CefV8Value::CreateObject(nullptr);
-
                 if(!ValueObject<T>::name.empty())
                 {
+                    retval = CefV8Value::CreateObject(nullptr);
+
                     for(auto& kv : ValueObject<T>::getters)
                     {
                         CefRefPtr<CefV8Value> field_value;
