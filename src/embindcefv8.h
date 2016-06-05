@@ -140,7 +140,7 @@ namespace embindcefv8
 
                     if(it != _Class<T>::methods.end())
                     {
-                        retval = CefV8Value::CreateFunction(it->first, &*it->second);
+                        retval = it->second;
                         return true;
                     }
                 }
@@ -733,7 +733,7 @@ namespace embindcefv8
                     MethodInvoker<T, Result, Args...>::call(field, object, retval, arguments);
                 };
 
-                methods[name] = new MethodHandler(m);
+                methods[name] = CefV8Value::CreateFunction(name, new MethodHandler(m));
             #endif
 
             return *this;
@@ -749,7 +749,7 @@ namespace embindcefv8
                     MethodInvoker<T, Result, Args...>::call(field, object, retval, arguments);
                 };
 
-                methods[name] = new MethodHandler(m);
+                methods[name] = CefV8Value::CreateFunction(name, new MethodHandler(m));
             #endif
 
             return *this;
@@ -765,7 +765,7 @@ namespace embindcefv8
                     MethodInvoker<T, void, Args...>::call(field, object, arguments);
                 };
 
-                methods[name] = new MethodHandler(m);
+                methods[name] = CefV8Value::CreateFunction(name, new MethodHandler(m));
             #endif
 
             return *this;
@@ -787,7 +787,7 @@ namespace embindcefv8
                 getters;
             static std::map<int, ConstructorFunction>
                 constructors;
-            static std::map<std::string, CefRefPtr<MethodHandler>>
+            static std::map<std::string, CefRefPtr<CefV8Value>>
                 methods;
             static CefRefPtr<ClassAccessor<T>>
                 classAccessor;
@@ -894,7 +894,7 @@ namespace embindcefv8
         template<class T>
         std::map<int, ConstructorFunction> _Class<T>::constructors;
         template<class T>
-        std::map<std::string, CefRefPtr<MethodHandler>> _Class<T>::methods;
+        std::map<std::string, CefRefPtr<CefV8Value>> _Class<T>::methods;
         template<class T>
         CefRefPtr<ClassAccessor<T>> _Class<T>::classAccessor = new ClassAccessor<T>();
 
@@ -928,14 +928,6 @@ namespace embindcefv8
                     for(auto& kv : _Class<T>::methods)
                     {
                         retval->SetValue(kv.first, V8_ACCESS_CONTROL_DEFAULT, V8_PROPERTY_ATTRIBUTE_NONE);
-
-                        /*auto copied_kv = kv;
-                        ResultFunction fc = [copied_kv, & value](CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments) {
-                            copied_kv.second(retval, (void*) &value, arguments);
-                        };
-
-                        CefRefPtr<CefV8Value> func = CefV8Value::CreateFunction(kv.first, new FuncHandler(fc));
-                        retval->SetValue(kv.first, func, V8_PROPERTY_ATTRIBUTE_NONE);*/
                     }
                 }
             }
