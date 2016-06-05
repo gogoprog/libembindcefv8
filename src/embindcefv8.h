@@ -70,10 +70,50 @@ namespace embindcefv8
                 func;
         };
 
+        struct UserData : public CefBase
+        {
+            UserData(void * _data)
+                : data(_data)
+            {
+            }
+
+            UserData(const void * _data)
+                : data(const_cast<void*>(_data))
+            {
+            }
+
+            ~UserData()
+            {
+            }
+
+            void
+                * data;
+
+            IMPLEMENT_REFCOUNTING(UserData);
+        };
+
+        class MethodHandler : public CefV8Handler
+        {
+        public:
+            MethodHandler(MethodFunction & _method) : CefV8Handler()
+            {
+                method = _method;
+            }
+
+            virtual bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) override
+            {
+                method(retval, dynamic_cast<UserData*>(object->GetUserData().get())->data, arguments);
+                return true;
+            }
+
+            IMPLEMENT_REFCOUNTING(FuncHandler);
+        private:
+            MethodFunction
+                method;
+        };
+
         template<typename T>
         class _Class;
-        template<typename T>
-        class UserData;
 
         template<typename T>
         class ClassAccessor : public CefV8Accessor
@@ -85,12 +125,24 @@ namespace embindcefv8
 
             virtual bool Get(const CefString& name, const CefRefPtr<CefV8Value> object, CefRefPtr<CefV8Value>& retval, CefString& exception) override
             {
-                auto it = _Class<T>::getters.find(name);
-
-                if(it != _Class<T>::getters.end())
                 {
-                    it->second(retval, reinterpret_cast<UserData<T> &>(*object->GetUserData()).data);
-                    return true;
+                    auto it = _Class<T>::getters.find(name);
+
+                    if(it != _Class<T>::getters.end())
+                    {
+                        it->second(retval, dynamic_cast<UserData*>(object->GetUserData().get())->data);
+                        return true;
+                    }
+                }
+
+                {
+                    auto it = _Class<T>::methods.find(name);
+
+                    if(it != _Class<T>::methods.end())
+                    {
+                        retval = CefV8Value::CreateFunction(it->first, &*it->second);
+                        return true;
+                    }
                 }
 
                 return false;
@@ -165,8 +217,6 @@ namespace embindcefv8
 
         template<class T>
         class ValueObject;
-        template<class T>
-        class UserData;
 
         template<typename T, class Enable = void>
         struct ValueConverter
@@ -187,7 +237,7 @@ namespace embindcefv8
                 }
                 else
                 {
-                    return * dynamic_cast<UserData<T> &>(*v.GetUserData()).data;
+                    return * reinterpret_cast<T *>(dynamic_cast<UserData*>(v.GetUserData().get())->data);
                 }
 
                 return *(T*)0;
@@ -201,7 +251,7 @@ namespace embindcefv8
             {
                 using type = typename std::remove_pointer<T>::type;
 
-                return reinterpret_cast<UserData<type> &>(*v.GetUserData()).data;
+                return reinterpret_cast<type *>(dynamic_cast<UserData*>(v.GetUserData().get())->data);
             }
         };
 
@@ -679,9 +729,11 @@ namespace embindcefv8
             #ifdef EMSCRIPTEN
                 emClass->function(name, field, emscripten::allow_raw_pointers());
             #else
-                methods[name] = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
+                MethodFunction m = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
                     MethodInvoker<T, Result, Args...>::call(field, object, retval, arguments);
                 };
+
+                methods[name] = new MethodHandler(m);
             #endif
 
             return *this;
@@ -693,9 +745,11 @@ namespace embindcefv8
             #ifdef EMSCRIPTEN
                 emClass->function(name, field, emscripten::allow_raw_pointers());
             #else
-                methods[name] = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
+                MethodFunction m = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
                     MethodInvoker<T, Result, Args...>::call(field, object, retval, arguments);
                 };
+
+                methods[name] = new MethodHandler(m);
             #endif
 
             return *this;
@@ -707,9 +761,11 @@ namespace embindcefv8
             #ifdef EMSCRIPTEN
                 emClass->function(name, field, emscripten::allow_raw_pointers());
             #else
-                methods[name] = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
+                MethodFunction m = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
                     MethodInvoker<T, void, Args...>::call(field, object, arguments);
                 };
+
+                methods[name] = new MethodHandler(m);
             #endif
 
             return *this;
@@ -731,7 +787,7 @@ namespace embindcefv8
                 getters;
             static std::map<int, ConstructorFunction>
                 constructors;
-            static std::map<std::string, MethodFunction>
+            static std::map<std::string, CefRefPtr<MethodHandler>>
                 methods;
             static CefRefPtr<ClassAccessor<T>>
                 classAccessor;
@@ -838,28 +894,9 @@ namespace embindcefv8
         template<class T>
         std::map<int, ConstructorFunction> _Class<T>::constructors;
         template<class T>
-        std::map<std::string, MethodFunction> _Class<T>::methods;
+        std::map<std::string, CefRefPtr<MethodHandler>> _Class<T>::methods;
         template<class T>
         CefRefPtr<ClassAccessor<T>> _Class<T>::classAccessor = new ClassAccessor<T>();
-
-        template<typename T>
-        struct UserData : public CefBase
-        {
-            UserData(T * _data)
-                : data(_data)
-            {
-            }
-
-            UserData(const T * _data)
-                : data(const_cast<T*>(_data))
-            {
-            }
-
-            T
-                * data;
-
-            IMPLEMENT_REFCOUNTING(UserData);
-        };
 
         template<typename T>
         struct ValueCreator
@@ -879,10 +916,9 @@ namespace embindcefv8
                 }
                 else
                 {
-                    using type = typename std::remove_const<T>::type;
                     retval = CefV8Value::CreateObject(&*_Class<T>::classAccessor);
 
-                    retval->SetUserData(new UserData<type>(& value));
+                    retval->SetUserData(new UserData(& value));
 
                     for(auto& kv : _Class<T>::getters)
                     {
@@ -891,13 +927,15 @@ namespace embindcefv8
 
                     for(auto& kv : _Class<T>::methods)
                     {
-                        auto copied_kv = kv;
+                        retval->SetValue(kv.first, V8_ACCESS_CONTROL_DEFAULT, V8_PROPERTY_ATTRIBUTE_NONE);
+
+                        /*auto copied_kv = kv;
                         ResultFunction fc = [copied_kv, & value](CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments) {
                             copied_kv.second(retval, (void*) &value, arguments);
                         };
 
                         CefRefPtr<CefV8Value> func = CefV8Value::CreateFunction(kv.first, new FuncHandler(fc));
-                        retval->SetValue(kv.first, func, V8_PROPERTY_ATTRIBUTE_NONE);
+                        retval->SetValue(kv.first, func, V8_PROPERTY_ATTRIBUTE_NONE);*/
                     }
                 }
             }
