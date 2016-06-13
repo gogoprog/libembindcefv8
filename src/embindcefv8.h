@@ -223,7 +223,9 @@ namespace embindcefv8
         {
             static T get(CefV8Value & v)
             {
-                if(!ValueObject<T>::name.empty())
+                using TType = typename std::remove_reference<T>::type;
+
+                if(!ValueObject<TType>::name.empty())
                 {
                     T
                         result;
@@ -252,6 +254,17 @@ namespace embindcefv8
                 using type = typename std::remove_pointer<T>::type;
 
                 return reinterpret_cast<type *>(dynamic_cast<UserData*>(v.GetUserData().get())->data);
+            }
+        };
+
+        template<typename T>
+        struct ValueConverter<T, typename std::enable_if<std::is_reference<T>::value>::type>
+        {
+            static T get(CefV8Value & v)
+            {
+                using type = typename std::remove_reference<T>::type;
+
+                return *reinterpret_cast<type *>(dynamic_cast<UserData*>(v.GetUserData().get())->data);
             }
         };
 
@@ -451,11 +464,16 @@ namespace embindcefv8
 
             static void call(Result (T::*field)(A0, A1, A2, A3), void * object, const CefV8ValueList& arguments)
             {
+                using A0Type = typename std::remove_const<A0>::type;
+                using A1Type = typename std::remove_const<typename std::remove_reference<A1>::type>::type;
+                using A2Type = typename std::remove_const<typename std::remove_reference<A2>::type>::type;
+                using A3Type = typename std::remove_const<typename std::remove_reference<A3>::type>::type;
+
                 ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3])
+                    ValueConverter<A0Type>::get(*arguments[0]),
+                    ValueConverter<A1Type>::get(*arguments[1]),
+                    ValueConverter<A2Type>::get(*arguments[2]),
+                    ValueConverter<A3Type>::get(*arguments[3])
                     );
             }
         };
