@@ -465,7 +465,7 @@ namespace embindcefv8
             static void call(Result (T::*field)(A0, A1, A2, A3), void * object, const CefV8ValueList& arguments)
             {
                 using A0Type = typename std::remove_const<A0>::type;
-                using A1Type = typename std::remove_const<typename std::remove_reference<A1>::type>::type;
+                using A1Type = typename std::remove_const<A1>::type;
                 using A2Type = typename std::remove_const<typename std::remove_reference<A2>::type>::type;
                 using A3Type = typename std::remove_const<typename std::remove_reference<A3>::type>::type;
 
@@ -1031,9 +1031,6 @@ namespace embindcefv8
                 };\
             }\
         }
-
-        //extern template struct emscripten::internal::TypeID<Class>;
-        //extern template emscripten::internal::TYPEID emscripten::internal::TypeID<Class>::get();
 
     #define EMBINDCEFV8_DECLARE_ENUM(Enum)\
         EMSCRIPTEN_BINDINGS(Enum##_emscripten_binding) \
