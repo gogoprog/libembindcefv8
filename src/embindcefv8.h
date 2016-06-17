@@ -70,6 +70,12 @@ namespace embindcefv8
                 func;
         };
 
+        template<typename T>
+        struct IsValueObject
+        {
+            static constexpr bool value = false;
+        };
+
         struct UserData : public CefBase
         {
             UserData(void * _data)
@@ -260,27 +266,31 @@ namespace embindcefv8
         template<typename T>
         struct ValueConverter<T, typename std::enable_if<std::is_reference<T>::value>::type>
         {
-            static T get(CefV8Value & v)
+            using Type = typename std::remove_const<typename std::remove_reference<T>::type>::type;
+
+            template<class Q = T>
+            static
+            typename std::enable_if<!IsValueObject<Type>::value, Q>::type
+            get(CefV8Value & v)
             {
-                using TType = typename std::remove_const<typename std::remove_reference<T>::type>::type;
+                using Type2 = typename std::remove_reference<T>::type;
+                return *reinterpret_cast<Type2 *>(dynamic_cast<UserData*>(v.GetUserData().get())->data);
+            }
 
-                if(!ValueObject<TType>::name.empty())
+            template<class Q = Type>
+            static
+            typename std::enable_if<IsValueObject<Type>::value, Q>::type
+            get(CefV8Value & v)
+            {
+                Type
+                    result;
+
+                for(auto& kv : ValueObject<Type>::setters)
                 {
-                    TType
-                        & result = * new TType();
-
-                    for(auto& kv : ValueObject<TType>::setters)
-                    {
-                        kv.second((void*) &result, v.GetValue(kv.first));
-                    }
-
-                    return result;
+                    kv.second((void*) &result, v.GetValue(kv.first));
                 }
-                else
-                {
-                    using Type = typename std::remove_reference<T>::type;
-                    return *reinterpret_cast<Type *>(dynamic_cast<UserData*>(v.GetUserData().get())->data);
-                }
+
+                return result;
             }
         };
 
@@ -480,11 +490,6 @@ namespace embindcefv8
 
             static void call(Result (T::*field)(A0, A1, A2, A3), void * object, const CefV8ValueList& arguments)
             {
-                using A0Type = typename std::remove_const<A0>::type;
-                using A1Type = typename std::remove_reference<A1>::type;
-                using A2Type = typename std::remove_const<typename std::remove_reference<A2>::type>::type;
-                using A3Type = typename std::remove_const<typename std::remove_reference<A3>::type>::type;
-
                 ((*(T *) object).*field)(
                     ValueConverter<A0>::get(*arguments[0]),
                     ValueConverter<A1>::get(*arguments[1]),
@@ -1048,6 +1053,8 @@ namespace embindcefv8
             }\
         }
 
+    #define EMBINDCEFV8_DECLARE_VALUE_OBJECT(...)
+
     #define EMBINDCEFV8_DECLARE_ENUM(Enum)\
         EMSCRIPTEN_BINDINGS(Enum##_emscripten_binding) \
         { \
@@ -1083,6 +1090,16 @@ namespace embindcefv8
         }
 #else
     #define EMBINDCEFV8_DECLARE_CLASS(...)
+
+    #define EMBINDCEFV8_DECLARE_VALUE_OBJECT(Class)\
+        namespace embindcefv8\
+        {\
+        template<>\
+        struct IsValueObject<Class>\
+        {\
+            static constexpr bool value = true;\
+        };\
+        }
 
     #define EMBINDCEFV8_DECLARE_ENUM(Enum)\
         namespace embindcefv8\
