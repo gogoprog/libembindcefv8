@@ -446,14 +446,10 @@ namespace embindcefv8
         {
             static void call(Result (T::*field)(A0, A1, A2), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
             {
-                using A0Type = typename std::remove_const<typename std::remove_reference<A0>::type>::type;
-                using A1Type = typename std::remove_const<typename std::remove_reference<A1>::type>::type;
-                using A2Type = typename std::remove_const<typename std::remove_reference<A2>::type>::type;
-
                 const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0Type>::get(*arguments[0]),
-                    ValueConverter<A1Type>::get(*arguments[1]),
-                    ValueConverter<A2Type>::get(*arguments[2])
+                    ValueConverter<A0>::get(*arguments[0]),
+                    ValueConverter<A1>::get(*arguments[1]),
+                    ValueConverter<A2>::get(*arguments[2])
                     );
 
                 ValueCreatorCaller<Result>::create(retval, r);
@@ -461,14 +457,10 @@ namespace embindcefv8
 
             static void call(Result (T::*field)(A0, A1, A2), void * object, const CefV8ValueList& arguments)
             {
-                using A0Type = typename std::remove_const<typename std::remove_reference<A0>::type>::type;
-                using A1Type = typename std::remove_const<typename std::remove_reference<A1>::type>::type;
-                using A2Type = typename std::remove_const<typename std::remove_reference<A2>::type>::type;
-
                 ((*(T *) object).*field)(
-                    ValueConverter<A0Type>::get(*arguments[0]),
-                    ValueConverter<A1Type>::get(*arguments[1]),
-                    ValueConverter<A2Type>::get(*arguments[2])
+                    ValueConverter<A0>::get(*arguments[0]),
+                    ValueConverter<A1>::get(*arguments[1]),
+                    ValueConverter<A2>::get(*arguments[2])
                     );
             }
         };
