@@ -216,6 +216,12 @@ namespace embindcefv8
         {
             static void create(CefRefPtr<CefV8Value>& retval, const T & value)
             {
+                if(value == nullptr)
+                {
+                    retval = CefV8Value::CreateUndefined();
+                    return;
+                }
+
                 using type = typename std::remove_const<typename std::remove_reference<typename std::remove_pointer<T>::type>::type>::type;
                 ValueCreator<type>::create(retval, const_cast<type &>(*value));
             }
