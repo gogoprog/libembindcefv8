@@ -184,6 +184,15 @@ namespace embindcefv8
         };
 
         template<>
+        struct ValueCreator<unsigned>
+        {
+            static void create(CefRefPtr<CefV8Value>& retval, const unsigned value)
+            {
+                retval = CefV8Value::CreateUInt(value);
+            }
+        };
+
+        template<>
         struct ValueCreator<bool>
         {
             static void create(CefRefPtr<CefV8Value>& retval, const bool value)
