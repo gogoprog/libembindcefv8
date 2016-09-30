@@ -722,6 +722,11 @@ namespace embindcefv8
 
                             CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(copied_name.c_str(), new FuncHandler(fc));
                             module_object->SetValue(copied_name.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
+                            
+                            for(auto& kv : staticFunctions)
+                            {
+                                constructor_func->SetValue(kv.first, kv.second, V8_PROPERTY_ATTRIBUTE_NONE);
+                            }
                         }
                     );
                 }
@@ -804,6 +809,23 @@ namespace embindcefv8
 
             return *this;
         }
+        
+        template<typename Result, typename ... Args>
+        _Class & static_function(const char *name, Result (T::*field)(Args...))
+        {
+            #ifdef EMSCRIPTEN
+                emClass->class_function(name, field, emscripten::allow_raw_pointers());
+            #else
+                ResultFunction m = [field](CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments) {
+                    //MethodInvoker<T, Result, Args...>::call(field, retval, arguments);
+                    puts("static func called");
+                };
+
+                staticFunctions[name] = CefV8Value::CreateFunction(name, new FuncHandler(m));
+            #endif
+
+            return *this;
+        }
 
         template<typename C>
         friend class ValueCreator;
@@ -821,6 +843,8 @@ namespace embindcefv8
                 getters;
             static std::map<int, ConstructorFunction>
                 constructors;
+            static std::map<std::string, CefRefPtr<CefV8Value>>
+                staticFunctions;
             static std::map<std::string, CefRefPtr<CefV8Value>>
                 methods;
             static CefRefPtr<ClassAccessor<T>>
@@ -927,6 +951,8 @@ namespace embindcefv8
         std::map<std::string, GetterFunction> _Class<T>::getters;
         template<class T>
         std::map<int, ConstructorFunction> _Class<T>::constructors;
+        template<class T>
+        std::map<std::string, CefRefPtr<CefV8Value>> _Class<T>::staticFunctions;
         template<class T>
         std::map<std::string, CefRefPtr<CefV8Value>> _Class<T>::methods;
         template<class T>
