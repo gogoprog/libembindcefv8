@@ -372,6 +372,91 @@ namespace embindcefv8
             }
         };
 
+        template<typename Result, typename ... Args>
+        struct FunctionInvoker
+        {
+            static void call(Result (*staticFunction)(Args...), CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
+            {
+                const Result & r = (*staticFunction)();
+                ValueCreatorCaller<Result>::create(retval, r);
+            }
+        };
+
+        template<typename Result, typename A0>
+        struct FunctionInvoker<Result, A0>
+        {
+            static void call(Result (*staticFunction)(A0), CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
+            {
+                const Result & r = (*staticFunction)(
+                    ValueConverter<A0>::get(*arguments[0])
+                    );
+
+                ValueCreatorCaller<Result>::create(retval, r);
+            }
+        };
+
+        template<typename Result, typename A0, typename A1>
+        struct FunctionInvoker<Result, A0, A1>
+        {
+            static void call(Result (*staticFunction)(A0, A1), CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
+            {
+                const Result & r = (*staticFunction)(
+                    ValueConverter<A0>::get(*arguments[0]),
+                    ValueConverter<A0>::get(*arguments[1])
+                    );
+
+                ValueCreatorCaller<Result>::create(retval, r);
+            }
+        };
+
+        template<typename Result, typename A0, typename A1, typename A2>
+        struct FunctionInvoker<Result, A0, A1, A2>
+        {
+            static void call(Result (*staticFunction)(A0, A1, A2), CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
+            {
+                const Result & r = (*staticFunction)(
+                    ValueConverter<A0>::get(*arguments[0]),
+                    ValueConverter<A0>::get(*arguments[1]),
+                    ValueConverter<A0>::get(*arguments[2])
+                    );
+
+                ValueCreatorCaller<Result>::create(retval, r);
+            }
+        };
+
+        template<typename Result, typename A0, typename A1, typename A2, typename A3>
+        struct FunctionInvoker<Result, A0, A1, A2, A3>
+        {
+            static void call(Result (*staticFunction)(A0, A1, A2, A3), CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
+            {
+                const Result & r = (*staticFunction)(
+                    ValueConverter<A0>::get(*arguments[0]),
+                    ValueConverter<A0>::get(*arguments[1]),
+                    ValueConverter<A0>::get(*arguments[2]),
+                    ValueConverter<A0>::get(*arguments[3])
+                    );
+
+                ValueCreatorCaller<Result>::create(retval, r);
+            }
+        };
+
+        template<typename Result, typename A0, typename A1, typename A2, typename A3, typename A4>
+        struct FunctionInvoker<Result, A0, A1, A2, A3, A4>
+        {
+            static void call(Result (*staticFunction)(A0, A1, A2, A3, A4), CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
+            {
+                const Result & r = (*staticFunction)(
+                    ValueConverter<A0>::get(*arguments[0]),
+                    ValueConverter<A0>::get(*arguments[1]),
+                    ValueConverter<A0>::get(*arguments[2]),
+                    ValueConverter<A0>::get(*arguments[3]),
+                    ValueConverter<A0>::get(*arguments[4])
+                    );
+
+                ValueCreatorCaller<Result>::create(retval, r);
+            }
+        };
+
         template<typename T, typename Result, typename ... Args>
         struct MethodInvoker
         {
@@ -721,12 +806,13 @@ namespace embindcefv8
                             };
 
                             CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(copied_name.c_str(), new FuncHandler(fc));
-                            module_object->SetValue(copied_name.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
-                            
+
                             for(auto& kv : staticFunctions)
                             {
                                 constructor_func->SetValue(kv.first, kv.second, V8_PROPERTY_ATTRIBUTE_NONE);
                             }
+
+                            module_object->SetValue(copied_name.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
                         }
                     );
                 }
@@ -809,16 +895,15 @@ namespace embindcefv8
 
             return *this;
         }
-        
+
         template<typename Result, typename ... Args>
-        _Class & static_function(const char *name, Result (T::*field)(Args...))
+        _Class & static_function(const char *name, Result (*staticFunction)(Args...))
         {
             #ifdef EMSCRIPTEN
-                emClass->class_function(name, field, emscripten::allow_raw_pointers());
+                emClass->class_function(name, staticFunction, emscripten::allow_raw_pointers());
             #else
-                ResultFunction m = [field](CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments) {
-                    //MethodInvoker<T, Result, Args...>::call(field, retval, arguments);
-                    puts("static func called");
+                ResultFunction m = [staticFunction](CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments) {
+                    FunctionInvoker<Result, Args...>::call(staticFunction, retval, arguments);
                 };
 
                 staticFunctions[name] = CefV8Value::CreateFunction(name, new FuncHandler(m));

@@ -97,6 +97,36 @@ struct AStructContainer
         return AStruct(v);
     }
 
+    static int staticFunction()
+    {
+        return 32;
+    }
+
+    static int staticFunction1(int a)
+    {
+        return a;
+    }
+
+    static int staticFunction2(int a, int b)
+    {
+        return a + b;
+    }
+
+    static int staticFunction3(int a, int b, int c)
+    {
+        return a + b + c;
+    }
+
+    static int staticFunction4(int a, int b, int c, int d)
+    {
+        return a + b + c + d;
+    }
+
+    static int staticFunction5(int a, int b, int c, int d, int e)
+    {
+        return a + b + c + d + e;
+    }
+
     AStruct
         aMember;
     int
@@ -128,6 +158,12 @@ EMBINDCEFV8_BINDINGS(test)
         .method("resultMethod2", &AStructContainer::resultMethod2)
         .method("resultMethod3", &AStructContainer::resultMethod3)
         .method("constructAStruct", &AStructContainer::constructAStruct)
+        .static_function("staticFunction", &AStructContainer::staticFunction)
+        .static_function("staticFunction1", &AStructContainer::staticFunction1)
+        .static_function("staticFunction2", &AStructContainer::staticFunction2)
+        .static_function("staticFunction3", &AStructContainer::staticFunction3)
+        .static_function("staticFunction4", &AStructContainer::staticFunction4)
+        .static_function("staticFunction5", &AStructContainer::staticFunction5)
         ;
 }
 

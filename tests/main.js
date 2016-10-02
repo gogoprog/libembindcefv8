@@ -51,6 +51,15 @@ test('Class - primitive result methods', function() {
     ok(o.resultMethod3(4, 2, 3) === 24, '3 arguments');
 });
 
+test('Class - static function', function() {
+    ok(Module.AStructContainer.staticFunction() === 32, 'No argument');
+    ok(Module.AStructContainer.staticFunction1(16) === 16, '1 argument');
+    ok(Module.AStructContainer.staticFunction2(8, 8) === 16, '2 arguments');
+    ok(Module.AStructContainer.staticFunction3(4, 4, 4) === 12, '3 arguments');
+    ok(Module.AStructContainer.staticFunction4(2, 2, 2, 2) === 8, '4 arguments');
+    ok(Module.AStructContainer.staticFunction5(1, 1, 1, 1, 1) === 5, '5 arguments');
+});
+
 test('Class - ValueObject result methods', function() {
     var o = new Module.AStructContainer();
     var r;
