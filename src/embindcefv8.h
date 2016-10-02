@@ -792,30 +792,27 @@ namespace embindcefv8
                 if(emClass)
                     delete emClass;
             #else
-                if(constructors.size())
-                {
-                    auto copied_name = name;
+                auto copied_name = name;
 
-                    getRegisterers().push_back(
-                        [copied_name](CefRefPtr<CefV8Value> & module_object)
+                getRegisterers().push_back(
+                    [copied_name](CefRefPtr<CefV8Value> & module_object)
+                    {
+                        ResultFunction fc = [](CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments) {
+                            T * new_object;
+                            constructors[arguments.size()]((void*&)new_object, arguments);
+                            ValueCreator<T>::create(retval, * new_object);
+                        };
+
+                        CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(copied_name.c_str(), new FuncHandler(fc));
+
+                        for(auto& kv : staticFunctions)
                         {
-                            ResultFunction fc = [](CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments) {
-                                T * new_object;
-                                constructors[arguments.size()]((void*&)new_object, arguments);
-                                ValueCreator<T>::create(retval, * new_object);
-                            };
-
-                            CefRefPtr<CefV8Value> constructor_func = CefV8Value::CreateFunction(copied_name.c_str(), new FuncHandler(fc));
-
-                            for(auto& kv : staticFunctions)
-                            {
-                                constructor_func->SetValue(kv.first, kv.second, V8_PROPERTY_ATTRIBUTE_NONE);
-                            }
-
-                            module_object->SetValue(copied_name.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
+                            constructor_func->SetValue(kv.first, kv.second, V8_PROPERTY_ATTRIBUTE_NONE);
                         }
-                    );
-                }
+
+                        module_object->SetValue(copied_name.c_str(), constructor_func, V8_PROPERTY_ATTRIBUTE_NONE);
+                    }
+                );
             #endif
         }
 
