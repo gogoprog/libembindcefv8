@@ -665,6 +665,37 @@ namespace embindcefv8
                     );
             }
         };
+
+        template<typename T, typename A0, typename A1, typename A2, typename A3, typename A4>
+        struct ConstructorInvoker<T, A0, A1, A2, A3, A4>
+        {
+            static T * call(const CefV8ValueList& arguments)
+            {
+                return new T(
+                    ValueConverter<A0>::get(*arguments[0]),
+                    ValueConverter<A1>::get(*arguments[1]),
+                    ValueConverter<A2>::get(*arguments[2]),
+                    ValueConverter<A3>::get(*arguments[3]),
+                    ValueConverter<A4>::get(*arguments[4])
+                    );
+            }
+        };
+
+        template<typename T, typename A0, typename A1, typename A2, typename A3, typename A4, typename A5>
+        struct ConstructorInvoker<T, A0, A1, A2, A3, A4, A5>
+        {
+            static T * call(const CefV8ValueList& arguments)
+            {
+                return new T(
+                    ValueConverter<A0>::get(*arguments[0]),
+                    ValueConverter<A1>::get(*arguments[1]),
+                    ValueConverter<A2>::get(*arguments[2]),
+                    ValueConverter<A3>::get(*arguments[3]),
+                    ValueConverter<A4>::get(*arguments[4]),
+                    ValueConverter<A5>::get(*arguments[5])
+                    );
+            }
+        };
     #endif
 
     template<class T>
