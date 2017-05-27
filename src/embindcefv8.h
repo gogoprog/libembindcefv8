@@ -76,6 +76,12 @@ namespace embindcefv8
             static constexpr bool value = false;
         };
 
+        template<typename T>
+        struct GetBaseClass
+        {
+            using value = void;
+        };
+
         struct UserData : public CefBase
         {
             UserData(void * _data)
@@ -122,45 +128,7 @@ namespace embindcefv8
         class _Class;
 
         template<typename T>
-        class ClassAccessor : public CefV8Accessor
-        {
-        public:
-            ClassAccessor() : CefV8Accessor()
-            {
-            }
-
-            virtual bool Get(const CefString& name, const CefRefPtr<CefV8Value> object, CefRefPtr<CefV8Value>& retval, CefString& exception) override
-            {
-                {
-                    auto it = _Class<T>::getters.find(name);
-
-                    if(it != _Class<T>::getters.end())
-                    {
-                        it->second(retval, dynamic_cast<UserData*>(object->GetUserData().get())->data);
-                        return true;
-                    }
-                }
-
-                {
-                    auto it = _Class<T>::methods.find(name);
-
-                    if(it != _Class<T>::methods.end())
-                    {
-                        retval = it->second;
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            virtual bool Set(const CefString& name, const CefRefPtr<CefV8Value> object, const CefRefPtr<CefV8Value> value, CefString& exception) override
-            {
-                return false;
-            }
-
-            IMPLEMENT_REFCOUNTING(ClassAccessor);
-        };
+        class ClassAccessor;
 
         template<typename T>
         struct ValueCreator;
@@ -965,8 +933,6 @@ namespace embindcefv8
             static CefRefPtr<ClassAccessor<T>>
                 classAccessor;
         #endif
-
-
     };
 
     template<class T, class B = void>
@@ -1070,6 +1036,91 @@ namespace embindcefv8
         std::map<std::string, CefRefPtr<CefV8Value>> _Class<T>::staticFunctions;
         template<class T>
         std::map<std::string, CefRefPtr<CefV8Value>> _Class<T>::methods;
+
+        template<typename T>
+        class ClassAccessor : public CefV8Accessor
+        {
+        public:
+            ClassAccessor() : CefV8Accessor()
+            {
+            }
+
+            virtual bool Get(const CefString& name, const CefRefPtr<CefV8Value> object, CefRefPtr<CefV8Value>& retval, CefString& exception) override
+            {
+                return get(name, object, retval, exception);
+            }
+
+            static bool get(const CefString& name, const CefRefPtr<CefV8Value> object, CefRefPtr<CefV8Value>& retval, CefString& exception)
+            {
+                return internalGet(name, object, retval, exception);
+            }
+
+            template<class Q = T>
+            static
+            typename std::enable_if<std::is_void<typename GetBaseClass<Q>::value>::value, bool>::type
+            internalGet(const CefString& name, const CefRefPtr<CefV8Value> object, CefRefPtr<CefV8Value>& retval, CefString& exception)
+            {
+                {
+                    auto it = _Class<T>::getters.find(name);
+
+                    if(it != _Class<T>::getters.end())
+                    {
+                        it->second(retval, dynamic_cast<UserData*>(object->GetUserData().get())->data);
+                        return true;
+                    }
+                }
+
+                {
+                    auto it = _Class<T>::methods.find(name);
+
+                    if(it != _Class<T>::methods.end())
+                    {
+                        retval = it->second;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            template<class Q = T>
+            static
+            typename std::enable_if<!std::is_void<typename GetBaseClass<Q>::value>::value, bool>::type
+            internalGet(const CefString& name, const CefRefPtr<CefV8Value> object, CefRefPtr<CefV8Value>& retval, CefString& exception)
+            {
+                {
+                    auto it = _Class<T>::getters.find(name);
+
+                    if(it != _Class<T>::getters.end())
+                    {
+                        it->second(retval, dynamic_cast<UserData*>(object->GetUserData().get())->data);
+                        return true;
+                    }
+                }
+
+                {
+                    auto it = _Class<T>::methods.find(name);
+
+                    if(it != _Class<T>::methods.end())
+                    {
+                        retval = it->second;
+                        return true;
+                    }
+                }
+
+                using baseType = typename GetBaseClass<Q>::value;
+
+                return ClassAccessor<baseType>::get(name, object, retval, exception);
+            }
+
+            virtual bool Set(const CefString& name, const CefRefPtr<CefV8Value> object, const CefRefPtr<CefV8Value> value, CefString& exception) override
+            {
+                return false;
+            }
+
+            IMPLEMENT_REFCOUNTING(ClassAccessor);
+        };
+
         template<class T>
         CefRefPtr<ClassAccessor<T>> _Class<T>::classAccessor = new ClassAccessor<T>();
 
@@ -1144,7 +1195,7 @@ namespace embindcefv8
 }
 
 #ifdef EMSCRIPTEN
-    #define EMBINDCEFV8_DECLARE_CLASS(Class) \
+    #define EMBINDCEFV8_DECLARE_CLASS(Class, Base) \
         namespace emscripten {\
             namespace internal {\
                 template<>\
@@ -1187,6 +1238,14 @@ namespace embindcefv8
                     static Class fromWireType(WireType wt) = delete;\
                 };\
             }\
+        }\
+        namespace embindcefv8\
+        {\
+        template<>\
+        struct GetBaseClass<Class>\
+        {\
+            using value = Base;\
+        };\
         }
 
     #define EMBINDCEFV8_DECLARE_VALUE_OBJECT(...)
@@ -1225,7 +1284,15 @@ namespace embindcefv8
             emscripten::internal::_embind_register_std_string(emscripten::internal::TypeID<Class>::get(), #Class);\
         }
 #else
-    #define EMBINDCEFV8_DECLARE_CLASS(...)
+    #define EMBINDCEFV8_DECLARE_CLASS(Class, Base) \
+        namespace embindcefv8\
+        {\
+        template<>\
+        struct GetBaseClass<Class>\
+        {\
+            using value = Base;\
+        };\
+        }
 
     #define EMBINDCEFV8_DECLARE_VALUE_OBJECT(Class)\
         namespace embindcefv8\
