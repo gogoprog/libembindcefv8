@@ -242,28 +242,30 @@ namespace embindcefv8
         template<typename T, class Enable = void>
         struct ValueConverter
         {
-            static T get(CefV8Value & v)
+            using Type = typename std::remove_const<typename std::remove_reference<T>::type>::type;
+
+            template<class Q = T>
+            static
+            typename std::enable_if<!IsValueObject<Type>::value, Q>::type
+            get(CefV8Value & v)
             {
-                using TType = typename std::remove_const<typename std::remove_reference<T>::type>::type;
+                return * reinterpret_cast<T *>(dynamic_cast<UserData*>(v.GetUserData().get())->data);
+            }
 
-                if(!ValueObject<TType>::name.empty())
+            template<class Q = Type>
+            static
+            typename std::enable_if<IsValueObject<Type>::value, Q>::type
+            get(CefV8Value & v)
+            {
+                T
+                    result;
+
+                for(auto& kv : ValueObject<T>::setters)
                 {
-                    T
-                        result;
-
-                    for(auto& kv : ValueObject<T>::setters)
-                    {
-                        kv.second((void*) &result, v.GetValue(kv.first));
-                    }
-
-                    return result;
-                }
-                else
-                {
-                    return * reinterpret_cast<T *>(dynamic_cast<UserData*>(v.GetUserData().get())->data);
+                    kv.second((void*) &result, v.GetValue(kv.first));
                 }
 
-                return *(T*)0;
+                return result;
             }
         };
 
