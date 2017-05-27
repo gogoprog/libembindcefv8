@@ -27,6 +27,12 @@
 
 namespace embindcefv8
 {
+    template<typename T>
+    struct GetBaseClass
+    {
+        using value = void;
+    };
+
     #ifdef CEF
         typedef std::function<void()>
             Initializer;
@@ -76,12 +82,6 @@ namespace embindcefv8
             static constexpr bool value = false;
         };
 
-        template<typename T>
-        struct GetBaseClass
-        {
-            using value = void;
-        };
-
         struct UserData : public CefBase
         {
             UserData(void * _data)
@@ -125,7 +125,7 @@ namespace embindcefv8
         };
 
         template<typename T>
-        class _Class;
+        class Class;
 
         template<typename T>
         class ClassAccessor;
@@ -768,26 +768,32 @@ namespace embindcefv8
     };
 
     template<class T>
-    class _Class
+    class Class
     {
     public:
-        _Class()
+
+        #ifdef EMSCRIPTEN
+        using EmscriptenBaseClass = typename std::conditional<std::is_void<typename GetBaseClass<T>::value>::value, emscripten::internal::NoBaseClass, emscripten::base<typename GetBaseClass<T>::value>>::type;
+        #endif
+
+        Class()
         {
             #ifdef EMSCRIPTEN
                 emClass = nullptr;
             #endif
         }
 
-        _Class(const char *_name)
+        Class(const char *_name)
         {
             name = _name;
 
             #ifdef EMSCRIPTEN
                 emClass = new emscripten::class_<T>(_name);
+                emClass = new emscripten::class_<T, EmscriptenBaseClass>(_name);
             #endif
         }
 
-        ~_Class()
+        ~Class()
         {
             #ifdef EMSCRIPTEN
                 if(emClass)
@@ -818,7 +824,7 @@ namespace embindcefv8
         }
 
         template<typename ... Args>
-        _Class & constructor()
+        Class & constructor()
         {
             #ifdef EMSCRIPTEN
                 emClass->template constructor<Args...>();
@@ -833,7 +839,7 @@ namespace embindcefv8
         }
 
         template<class F>
-        _Class & property(const char *name, F (T::*field))
+        Class & property(const char *name, F (T::*field))
         {
             #ifdef EMSCRIPTEN
                 emClass->property(name, field);
@@ -847,7 +853,7 @@ namespace embindcefv8
         }
 
         template<typename Result, typename ... Args>
-        _Class & method(const char *name, Result (T::*field)(Args...))
+        Class & method(const char *name, Result (T::*field)(Args...))
         {
             #ifdef EMSCRIPTEN
                 emClass->function(name, field, emscripten::allow_raw_pointers());
@@ -863,7 +869,7 @@ namespace embindcefv8
         }
 
         template<typename Result, typename ... Args>
-        _Class & method(const char *name, Result (T::*field)(Args...) const)
+        Class & method(const char *name, Result (T::*field)(Args...) const)
         {
             #ifdef EMSCRIPTEN
                 emClass->function(name, field, emscripten::allow_raw_pointers());
@@ -879,7 +885,7 @@ namespace embindcefv8
         }
 
         template<typename ... Args>
-        _Class & method(const char *name, void (T::*field)(Args...))
+        Class & method(const char *name, void (T::*field)(Args...))
         {
             #ifdef EMSCRIPTEN
                 emClass->function(name, field, emscripten::allow_raw_pointers());
@@ -895,7 +901,7 @@ namespace embindcefv8
         }
 
         template<typename Result, typename ... Args>
-        _Class & static_function(const char *name, Result (*staticFunction)(Args...))
+        Class & static_function(const char *name, Result (*staticFunction)(Args...))
         {
             #ifdef EMSCRIPTEN
                 emClass->class_function(name, staticFunction, emscripten::allow_raw_pointers());
@@ -919,7 +925,7 @@ namespace embindcefv8
         static std::string
             name;
         #ifdef EMSCRIPTEN
-            emscripten::class_<T>
+            emscripten::class_<T, EmscriptenBaseClass>
                 * emClass;
         #else
             static std::map<std::string, GetterFunction>
@@ -935,90 +941,11 @@ namespace embindcefv8
         #endif
     };
 
-    template<class T, class B = void>
-    class Class : public _Class<T>
-    {
-    public:
-        Class(const char *_name)
-        {
-            _Class<T>::name = _name;
-
-            #ifdef EMSCRIPTEN
-                emClass = new emscripten::class_<T, emscripten::base<B>>(_name);
-            #endif
-        }
-
-        #ifdef EMSCRIPTEN
-            ~Class()
-            {
-                if(emClass)
-                    delete emClass;
-            }
-
-            template<typename ... Args>
-            Class & constructor()
-            {
-                emClass->template constructor<Args...>();
-
-                return *this;
-            }
-
-            template<class F>
-            Class & property(const char *name, F (T::*field))
-            {
-                emClass->property(name, field);
-
-                return *this;
-            }
-
-            template<typename Result, typename ... Args>
-            Class & method(const char *name, Result (T::*field)(Args...))
-            {
-                emClass->function(name, field, emscripten::allow_raw_pointers());
-
-                return *this;
-            }
-
-            template<typename Result, typename ... Args>
-            Class & method(const char *name, Result (T::*field)(Args...) const)
-            {
-                emClass->function(name, field, emscripten::allow_raw_pointers());
-
-                return *this;
-            }
-
-            template<typename ... Args>
-            Class & method(const char *name, void (T::*field)(Args...))
-            {
-                emClass->function(name, field, emscripten::allow_raw_pointers());
-
-                return *this;
-            }
-
-            emscripten::class_<T, emscripten::base<B>>
-                * emClass;
-        #endif
-    };
-
-    template<class T>
-    class Class<T, void> : public _Class<T>
-    {
-    public:
-        Class(const char *_name)
-        {
-            _Class<T>::name = _name;
-
-            #ifdef EMSCRIPTEN
-                _Class<T>::emClass = new emscripten::class_<T>(_name);
-            #endif
-        }
-    };
-
     template<class T>
     std::string ValueObject<T>::name;
 
     template<class T>
-    std::string _Class<T>::name;
+    std::string Class<T>::name;
 
     #ifdef CEF
         template<class T>
@@ -1029,13 +956,13 @@ namespace embindcefv8
         std::map<int, ConstructorFunction> ValueObject<T>::constructors;
 
         template<class T>
-        std::map<std::string, GetterFunction> _Class<T>::getters;
+        std::map<std::string, GetterFunction> Class<T>::getters;
         template<class T>
-        std::map<int, ConstructorFunction> _Class<T>::constructors;
+        std::map<int, ConstructorFunction> Class<T>::constructors;
         template<class T>
-        std::map<std::string, CefRefPtr<CefV8Value>> _Class<T>::staticFunctions;
+        std::map<std::string, CefRefPtr<CefV8Value>> Class<T>::staticFunctions;
         template<class T>
-        std::map<std::string, CefRefPtr<CefV8Value>> _Class<T>::methods;
+        std::map<std::string, CefRefPtr<CefV8Value>> Class<T>::methods;
 
         template<typename T>
         class ClassAccessor : public CefV8Accessor
@@ -1061,9 +988,9 @@ namespace embindcefv8
             internalGet(const CefString& name, const CefRefPtr<CefV8Value> object, CefRefPtr<CefV8Value>& retval, CefString& exception)
             {
                 {
-                    auto it = _Class<T>::getters.find(name);
+                    auto it = Class<T>::getters.find(name);
 
-                    if(it != _Class<T>::getters.end())
+                    if(it != Class<T>::getters.end())
                     {
                         it->second(retval, dynamic_cast<UserData*>(object->GetUserData().get())->data);
                         return true;
@@ -1071,9 +998,9 @@ namespace embindcefv8
                 }
 
                 {
-                    auto it = _Class<T>::methods.find(name);
+                    auto it = Class<T>::methods.find(name);
 
-                    if(it != _Class<T>::methods.end())
+                    if(it != Class<T>::methods.end())
                     {
                         retval = it->second;
                         return true;
@@ -1089,9 +1016,9 @@ namespace embindcefv8
             internalGet(const CefString& name, const CefRefPtr<CefV8Value> object, CefRefPtr<CefV8Value>& retval, CefString& exception)
             {
                 {
-                    auto it = _Class<T>::getters.find(name);
+                    auto it = Class<T>::getters.find(name);
 
-                    if(it != _Class<T>::getters.end())
+                    if(it != Class<T>::getters.end())
                     {
                         it->second(retval, dynamic_cast<UserData*>(object->GetUserData().get())->data);
                         return true;
@@ -1099,9 +1026,9 @@ namespace embindcefv8
                 }
 
                 {
-                    auto it = _Class<T>::methods.find(name);
+                    auto it = Class<T>::methods.find(name);
 
-                    if(it != _Class<T>::methods.end())
+                    if(it != Class<T>::methods.end())
                     {
                         retval = it->second;
                         return true;
@@ -1122,40 +1049,72 @@ namespace embindcefv8
         };
 
         template<class T>
-        CefRefPtr<ClassAccessor<T>> _Class<T>::classAccessor = new ClassAccessor<T>();
+        CefRefPtr<ClassAccessor<T>> Class<T>::classAccessor = new ClassAccessor<T>();
 
         template<typename T>
         struct ValueCreator
         {
-            static void create(CefRefPtr<CefV8Value>& retval, const T& value)
+            template<class Q = T>
+            static
+            typename std::enable_if<IsValueObject<Q>::value, void>::type
+            create(CefRefPtr<CefV8Value>& retval, const T& value)
             {
-                if(!ValueObject<T>::name.empty())
+                retval = CefV8Value::CreateObject(nullptr);
+
+                for(auto& kv : ValueObject<T>::getters)
                 {
-                    retval = CefV8Value::CreateObject(nullptr);
-
-                    for(auto& kv : ValueObject<T>::getters)
-                    {
-                        CefRefPtr<CefV8Value> field_value;
-                        kv.second(field_value, (void*) &value);
-                        retval->SetValue(kv.first, field_value, V8_PROPERTY_ATTRIBUTE_NONE);
-                    }
+                    CefRefPtr<CefV8Value> field_value;
+                    kv.second(field_value, (void*) &value);
+                    retval->SetValue(kv.first, field_value, V8_PROPERTY_ATTRIBUTE_NONE);
                 }
-                else
+            }
+
+            template<class Q = T>
+            static
+            typename std::enable_if<!IsValueObject<Q>::value, void>::type
+            create(CefRefPtr<CefV8Value>& retval, const T& value)
+            {
+                retval = CefV8Value::CreateObject(&*Class<T>::classAccessor);
+
+                retval->SetUserData(new UserData(& value));
+
+                setGettersAndMethods(retval, value);
+            }
+
+            template<class Q = T>
+            static
+            typename std::enable_if<std::is_void<typename GetBaseClass<Q>::value>::value, void>::type
+            setGettersAndMethods(CefRefPtr<CefV8Value>& retval, const T& value)
+            {
+                for(auto& kv : Class<T>::getters)
                 {
-                    retval = CefV8Value::CreateObject(&*_Class<T>::classAccessor);
-
-                    retval->SetUserData(new UserData(& value));
-
-                    for(auto& kv : _Class<T>::getters)
-                    {
-                        retval->SetValue(kv.first, V8_ACCESS_CONTROL_DEFAULT, V8_PROPERTY_ATTRIBUTE_NONE);
-                    }
-
-                    for(auto& kv : _Class<T>::methods)
-                    {
-                        retval->SetValue(kv.first, V8_ACCESS_CONTROL_DEFAULT, V8_PROPERTY_ATTRIBUTE_NONE);
-                    }
+                    retval->SetValue(kv.first, V8_ACCESS_CONTROL_DEFAULT, V8_PROPERTY_ATTRIBUTE_NONE);
                 }
+
+                for(auto& kv : Class<T>::methods)
+                {
+                    retval->SetValue(kv.first, V8_ACCESS_CONTROL_DEFAULT, V8_PROPERTY_ATTRIBUTE_NONE);
+                }
+            }
+
+            template<class Q = T>
+            static
+            typename std::enable_if<!std::is_void<typename GetBaseClass<Q>::value>::value, void>::type
+            setGettersAndMethods(CefRefPtr<CefV8Value>& retval, const T& value)
+            {
+                for(auto& kv : Class<T>::getters)
+                {
+                    retval->SetValue(kv.first, V8_ACCESS_CONTROL_DEFAULT, V8_PROPERTY_ATTRIBUTE_NONE);
+                }
+
+                for(auto& kv : Class<T>::methods)
+                {
+                    retval->SetValue(kv.first, V8_ACCESS_CONTROL_DEFAULT, V8_PROPERTY_ATTRIBUTE_NONE);
+                }
+
+                using baseType = typename GetBaseClass<Q>::value;
+
+                ValueCreator<baseType>::setGettersAndMethods(retval, value);
             }
         };
     #endif
