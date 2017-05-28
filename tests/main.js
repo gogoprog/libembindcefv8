@@ -69,3 +69,12 @@ test('Class - ValueObject result methods', function() {
     ok(r.intMember == 2048, 'Int property');
     ok(r.stringMember == "A sample string", 'String property');
 });
+
+test('Class - inherited methods', function() {
+    var o = new Module.ADerivedClass();
+
+    ok(o.resultMethod() === 256, 'Not inherited method');
+    ok(o.resultMethod1(4) === 4, 'Inherited method');
+    ok(o.resultMethod2(4, 2) === 8, 'Inherited method');
+    ok(o.resultMethod3(4, 2, 3) === 24, 'Inherited method');
+});

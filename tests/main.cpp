@@ -133,6 +133,21 @@ struct AStructContainer
         aInt;
 };
 
+class ADerivedClass : public AStructContainer
+{
+public:
+    ADerivedClass() = default;
+
+    int resultMethod()
+    {
+        return 256;
+    }
+};
+
+EMBINDCEFV8_DECLARE_CLASS(AStructContainer, void)
+EMBINDCEFV8_DECLARE_CLASS(ADerivedClass, AStructContainer)
+EMBINDCEFV8_DECLARE_VALUE_OBJECT(AStruct)
+
 EMBINDCEFV8_BINDINGS(test)
 {
     embindcefv8::ValueObject<AStruct>("AStruct")
@@ -164,6 +179,11 @@ EMBINDCEFV8_BINDINGS(test)
         .static_function("staticFunction3", &AStructContainer::staticFunction3)
         .static_function("staticFunction4", &AStructContainer::staticFunction4)
         .static_function("staticFunction5", &AStructContainer::staticFunction5)
+        ;
+
+    embindcefv8::Class<ADerivedClass>("ADerivedClass")
+        .constructor()
+        .method("resultMethod", &ADerivedClass::resultMethod)
         ;
 }
 
