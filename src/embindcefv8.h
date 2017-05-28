@@ -776,19 +776,13 @@ namespace embindcefv8
         using EmscriptenBaseClass = typename std::conditional<std::is_void<typename GetBaseClass<T>::value>::value, emscripten::internal::NoBaseClass, emscripten::base<typename GetBaseClass<T>::value>>::type;
         #endif
 
-        Class()
-        {
-            #ifdef EMSCRIPTEN
-                emClass = nullptr;
-            #endif
-        }
+        Class() = delete;
 
         Class(const char *_name)
         {
             name = _name;
 
             #ifdef EMSCRIPTEN
-                emClass = new emscripten::class_<T>(_name);
                 emClass = new emscripten::class_<T, EmscriptenBaseClass>(_name);
             #endif
         }
