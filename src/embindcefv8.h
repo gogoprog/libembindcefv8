@@ -455,6 +455,11 @@ namespace embindcefv8
             {
                 ((*(T *) object).*field)();
             }
+
+            static void call(Result (T::*field)(Args...) const, void * object, const CefV8ValueList& arguments)
+            {
+                ((*(T *) object).*field)();
+            }
         };
 
         template<typename T, typename Result, typename A0>
@@ -1064,6 +1069,22 @@ namespace embindcefv8
 
         template<typename ... Args>
         Class & method(const char *name, void (T::*field)(Args...))
+        {
+            #ifdef EMSCRIPTEN
+                emClass->function(name, field, emscripten::allow_raw_pointers());
+            #else
+                MethodFunction m = [field](CefRefPtr<CefV8Value>& retval, void * object, const CefV8ValueList& arguments) {
+                    MethodInvoker<T, void, Args...>::call(field, object, arguments);
+                };
+
+                methods[name] = CefV8Value::CreateFunction(name, new MethodHandler(m));
+            #endif
+
+            return *this;
+        }
+
+        template<typename ... Args>
+        Class & method(const char *name, void (T::*field)(Args...) const)
         {
             #ifdef EMSCRIPTEN
                 emClass->function(name, field, emscripten::allow_raw_pointers());
