@@ -10,6 +10,7 @@
     #include "include/cef_client.h"
     #include "include/cef_app.h"
     #include <functional>
+    #include <tuple>
 #endif
 
 #ifdef EMSCRIPTEN
@@ -439,332 +440,43 @@ namespace embindcefv8
         template<typename T, typename Result, typename ... Args>
         struct MethodInvoker
         {
+            template<int N>
+            using GetArgType = typename std::tuple_element<N, std::tuple<Args...>>::type;
+
             static void call(Result (T::*field)(Args...), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
             {
-                const Result & r = ((*(T *) object).*field)();
-                ValueCreatorCaller<Result>::create(retval, r);
+                internalCall(field, object, std::index_sequence_for<Args...>{}, retval, arguments);
             }
 
             static void call(Result (T::*field)(Args...) const, void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
             {
-                const Result & r = ((*(T *) object).*field)();
-                ValueCreatorCaller<Result>::create(retval, r);
+                internalCall(field, object, std::index_sequence_for<Args...>{}, retval, arguments);
             }
 
             static void call(Result (T::*field)(Args...), void * object, const CefV8ValueList& arguments)
             {
-                ((*(T *) object).*field)();
+                internalCall(field, object, std::index_sequence_for<Args...>{}, arguments);
             }
 
             static void call(Result (T::*field)(Args...) const, void * object, const CefV8ValueList& arguments)
             {
-                ((*(T *) object).*field)();
+                internalCall(field, object, std::index_sequence_for<Args...>{}, arguments);
+            }
+
+        private:
+            template<class Field, std::size_t... Is>
+            static void internalCall(Field field, void * object, std::index_sequence<Is...>, const CefV8ValueList& arguments)
+            {
+                ((*(T *) object).*field)((ValueConverter<GetArgType<Is>>::get(*arguments[Is])) ...);
+            }
+
+            template<class Field, std::size_t... Is>
+            static void internalCall(Field field, void * object, std::index_sequence<Is...>, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
+            {
+                const Result & r = ((*(T *) object).*field)((ValueConverter<GetArgType<Is>>::get(*arguments[Is])) ...);
+                ValueCreatorCaller<Result>::create(retval, r);
             }
         };
-
-        template<typename T, typename Result, typename A0>
-        struct MethodInvoker<T, Result, A0>
-        {
-            static void call(Result (T::*field)(A0), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-
-            static void call(Result (T::*field)(A0) const, void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-
-            static void call(Result (T::*field)(A0), void * object, const CefV8ValueList& arguments)
-            {
-                ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0])
-                    );
-            }
-
-            static void call(Result (T::*field)(A0) const, void * object, const CefV8ValueList& arguments)
-            {
-                ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0])
-                    );
-            }
-        };
-
-        template<typename T, typename Result, typename A0, typename A1>
-        struct MethodInvoker<T, Result, A0, A1>
-        {
-            static void call(Result (T::*field)(A0, A1), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-
-            static void call(Result (T::*field)(A0, A1) const, void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-
-            static void call(Result (T::*field)(A0, A1), void * object, const CefV8ValueList& arguments)
-            {
-                ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1])
-                    );
-            }
-
-            static void call(Result (T::*field)(A0, A1) const, void * object, const CefV8ValueList& arguments)
-            {
-                ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1])
-                    );
-            }
-        };
-
-        template<typename T, typename Result, typename A0, typename A1, typename A2>
-        struct MethodInvoker<T, Result, A0, A1, A2>
-        {
-            static void call(Result (T::*field)(A0, A1, A2), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-
-            static void call(Result (T::*field)(A0, A1, A2) const, void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-
-            static void call(Result (T::*field)(A0, A1, A2), void * object, const CefV8ValueList& arguments)
-            {
-                ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2])
-                    );
-            }
-        };
-
-        template<typename T, typename Result, typename A0, typename A1, typename A2, typename A3>
-        struct MethodInvoker<T, Result, A0, A1, A2, A3>
-        {
-            static void call(Result (T::*field)(A0, A1, A2, A3), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-
-            static void call(Result (T::*field)(A0, A1, A2, A3), void * object, const CefV8ValueList& arguments)
-            {
-                ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3])
-                    );
-            }
-        };
-
-        template<typename T, typename Result, typename A0, typename A1, typename A2, typename A3, typename A4>
-        struct MethodInvoker<T, Result, A0, A1, A2, A3, A4>
-        {
-            static void call(Result (T::*field)(A0, A1, A2, A3, A4), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3]),
-                    ValueConverter<A4>::get(*arguments[4])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-
-            static void call(Result (T::*field)(A0, A1, A2, A3, A4), void * object, const CefV8ValueList& arguments)
-            {
-                ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3]),
-                    ValueConverter<A4>::get(*arguments[4])
-                    );
-            }
-        };
-
-        template<typename T, typename Result, typename A0, typename A1, typename A2, typename A3, typename A4, typename A5>
-        struct MethodInvoker<T, Result, A0, A1, A2, A3, A4, A5>
-        {
-            static void call(Result (T::*field)(A0, A1, A2, A3, A4, A5), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3]),
-                    ValueConverter<A4>::get(*arguments[4]),
-                    ValueConverter<A5>::get(*arguments[5])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-
-            static void call(Result (T::*field)(A0, A1, A2, A3, A4, A5), void * object, const CefV8ValueList& arguments)
-            {
-                ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3]),
-                    ValueConverter<A4>::get(*arguments[4]),
-                    ValueConverter<A5>::get(*arguments[5])
-                    );
-            }
-        };
-
-        template<typename T, typename Result, typename A0, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
-        struct MethodInvoker<T, Result, A0, A1, A2, A3, A4, A5, A6>
-        {
-            static void call(Result (T::*field)(A0, A1, A2, A3, A4, A5, A6), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3]),
-                    ValueConverter<A4>::get(*arguments[4]),
-                    ValueConverter<A5>::get(*arguments[5]),
-                    ValueConverter<A6>::get(*arguments[6])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-
-            static void call(Result (T::*field)(A0, A1, A2, A3, A4, A5, A6), void * object, const CefV8ValueList& arguments)
-            {
-                ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3]),
-                    ValueConverter<A4>::get(*arguments[4]),
-                    ValueConverter<A5>::get(*arguments[5]),
-                    ValueConverter<A6>::get(*arguments[6])
-                    );
-            }
-        };
-
-        template<typename T, typename Result, typename A0, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7, typename A8>
-        struct MethodInvoker<T, Result, A0, A1, A2, A3, A4, A5, A6, A7, A8>
-        {
-            static void call(Result (T::*field)(A0, A1, A2, A3, A4, A5, A6, A7, A8), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3]),
-                    ValueConverter<A4>::get(*arguments[4]),
-                    ValueConverter<A5>::get(*arguments[5]),
-                    ValueConverter<A6>::get(*arguments[6]),
-                    ValueConverter<A7>::get(*arguments[7]),
-                    ValueConverter<A8>::get(*arguments[8])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-
-            static void call(Result (T::*field)(A0, A1, A2, A3, A4, A5, A6, A7, A8), void * object, const CefV8ValueList& arguments)
-            {
-                ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3]),
-                    ValueConverter<A4>::get(*arguments[4]),
-                    ValueConverter<A5>::get(*arguments[5]),
-                    ValueConverter<A6>::get(*arguments[6]),
-                    ValueConverter<A7>::get(*arguments[7]),
-                    ValueConverter<A8>::get(*arguments[8])
-                    );
-            }
-        };
-
-        template<typename T, typename Result, typename A0, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7, typename A8, typename A9, typename A10>
-        struct MethodInvoker<T, Result, A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10>
-        {
-            static void call(Result (T::*field)(A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3]),
-                    ValueConverter<A4>::get(*arguments[4]),
-                    ValueConverter<A5>::get(*arguments[5]),
-                    ValueConverter<A6>::get(*arguments[6]),
-                    ValueConverter<A7>::get(*arguments[7]),
-                    ValueConverter<A8>::get(*arguments[8]),
-                    ValueConverter<A9>::get(*arguments[9]),
-                    ValueConverter<A10>::get(*arguments[10])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-
-            static void call(Result (T::*field)(A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), void * object, const CefV8ValueList& arguments)
-            {
-                ((*(T *) object).*field)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3]),
-                    ValueConverter<A4>::get(*arguments[4]),
-                    ValueConverter<A5>::get(*arguments[5]),
-                    ValueConverter<A6>::get(*arguments[6]),
-                    ValueConverter<A7>::get(*arguments[7]),
-                    ValueConverter<A8>::get(*arguments[8]),
-                    ValueConverter<A9>::get(*arguments[9]),
-                    ValueConverter<A10>::get(*arguments[10])
-                    );
-            }
-        };
-
 
         template<typename T, typename ... Args>
         struct ConstructorInvoker
