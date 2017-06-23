@@ -355,84 +355,19 @@ namespace embindcefv8
         template<typename Result, typename ... Args>
         struct FunctionInvoker
         {
+            template<int N>
+            using GetArgType = typename std::tuple_element<N, std::tuple<Args...>>::type;
+
             static void call(Result (*staticFunction)(Args...), CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
             {
-                const Result & r = (*staticFunction)();
-                ValueCreatorCaller<Result>::create(retval, r);
+                  internalCall(staticFunction, std::index_sequence_for<Args...>{}, retval, arguments);
             }
-        };
 
-        template<typename Result, typename A0>
-        struct FunctionInvoker<Result, A0>
-        {
-            static void call(Result (*staticFunction)(A0), CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
+         private:
+            template<class Function, std::size_t... Is>
+            static void internalCall(Function func, std::index_sequence<Is...>, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
             {
-                const Result & r = (*staticFunction)(
-                    ValueConverter<A0>::get(*arguments[0])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-        };
-
-        template<typename Result, typename A0, typename A1>
-        struct FunctionInvoker<Result, A0, A1>
-        {
-            static void call(Result (*staticFunction)(A0, A1), CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = (*staticFunction)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-        };
-
-        template<typename Result, typename A0, typename A1, typename A2>
-        struct FunctionInvoker<Result, A0, A1, A2>
-        {
-            static void call(Result (*staticFunction)(A0, A1, A2), CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = (*staticFunction)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-        };
-
-        template<typename Result, typename A0, typename A1, typename A2, typename A3>
-        struct FunctionInvoker<Result, A0, A1, A2, A3>
-        {
-            static void call(Result (*staticFunction)(A0, A1, A2, A3), CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = (*staticFunction)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3])
-                    );
-
-                ValueCreatorCaller<Result>::create(retval, r);
-            }
-        };
-
-        template<typename Result, typename A0, typename A1, typename A2, typename A3, typename A4>
-        struct FunctionInvoker<Result, A0, A1, A2, A3, A4>
-        {
-            static void call(Result (*staticFunction)(A0, A1, A2, A3, A4), CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
-            {
-                const Result & r = (*staticFunction)(
-                    ValueConverter<A0>::get(*arguments[0]),
-                    ValueConverter<A1>::get(*arguments[1]),
-                    ValueConverter<A2>::get(*arguments[2]),
-                    ValueConverter<A3>::get(*arguments[3]),
-                    ValueConverter<A4>::get(*arguments[4])
-                    );
-
+                const Result & r = (*func)((ValueConverter<GetArgType<Is>>::get(*arguments[Is])) ...);
                 ValueCreatorCaller<Result>::create(retval, r);
             }
         };
