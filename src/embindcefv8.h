@@ -259,7 +259,7 @@ namespace embindcefv8
         };
 
         template<typename T>
-        struct ValueConverter<T, typename std::enable_if<std::is_reference<T>::value>::type>
+        struct ValueConverter<T, typename std::enable_if<std::is_reference<T>::value && std::is_const<typename std::remove_reference<T>::type>::value>::type>
         {
             using Type = typename std::remove_const<typename std::remove_reference<T>::type>::type;
 
@@ -279,6 +279,37 @@ namespace embindcefv8
             {
                 Type
                     result;
+
+                for(auto& kv : ValueObject<Type>::setters)
+                {
+                    kv.second((void*) &result, v.GetValue(kv.first));
+                }
+
+                return result;
+            }
+        };
+
+        template<typename T>
+        struct ValueConverter<T, typename std::enable_if<std::is_reference<T>::value && !std::is_const<typename std::remove_reference<T>::type>::value>::type>
+        {
+            using Type = typename std::remove_const<typename std::remove_reference<T>::type>::type;
+
+            template<class Q = T>
+            static
+            typename std::enable_if<!IsValueObject<Type>::value, Q>::type
+            get(CefV8Value & v)
+            {
+                using Type2 = typename std::remove_reference<T>::type;
+                return *reinterpret_cast<Type2 *>(dynamic_cast<UserData*>(v.GetUserData().get())->data);
+            }
+
+            template<class Q = T>
+            static
+            typename std::enable_if<IsValueObject<Type>::value, Q>::type
+            get(CefV8Value & v)
+            {
+                Type
+                    & result = * new Type();
 
                 for(auto& kv : ValueObject<Type>::setters)
                 {
