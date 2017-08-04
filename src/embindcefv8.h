@@ -35,20 +35,13 @@ namespace embindcefv8
     };
 
     #ifdef CEF
-        typedef std::function<void()>
-            Initializer;
-        typedef std::function<void(CefRefPtr<CefV8Value>&)>
-            Registerer;
-        typedef std::function<void(CefRefPtr<CefV8Value>&, const CefV8ValueList&)>
-            ResultFunction;
-        typedef std::function<void(CefRefPtr<CefV8Value>&, void*)>
-            GetterFunction;
-        typedef std::function<void(void*, const CefRefPtr<CefV8Value>&)>
-            SetterFunction;
-        typedef std::function<void(CefRefPtr<CefV8Value>&, void*, const CefV8ValueList& arguments)>
-            MethodFunction;
-        typedef std::function<void(void *&, const CefV8ValueList& arguments)>
-            ConstructorFunction;
+        using Initializer = std::function<void()>;
+        using Registerer = std::function<void(CefRefPtr<CefV8Value>&)>;
+        using ResultFunction = std::function<void(CefRefPtr<CefV8Value>&, const CefV8ValueList&)>;
+        using GetterFunction = std::function<void(CefRefPtr<CefV8Value>&, void*)>;
+        using SetterFunction = std::function<void(void*, const CefRefPtr<CefV8Value>&)>;
+        using MethodFunction = std::function<void(CefRefPtr<CefV8Value>&, void*, const CefV8ValueList& arguments)>;
+        using ConstructorFunction = std::function<void(void *&, const CefV8ValueList& arguments)>;
 
         std::map<std::string, Initializer> & getInitializers();
         void onContextCreated(CefV8Context* context);
