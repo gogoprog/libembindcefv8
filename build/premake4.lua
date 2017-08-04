@@ -32,7 +32,7 @@ solution "libembindcefv8"
         targetdir "../tests/"
 
         if not os.is("windows") then
-            buildoptions { "-std=c++14 -Wno-error=unused-variable -Wno-error=unused-parameter" }
+            buildoptions { "-std=c++1z -Wno-error=unused-variable -Wno-error=unused-parameter" }
         end
 
         if os.is("linux") then

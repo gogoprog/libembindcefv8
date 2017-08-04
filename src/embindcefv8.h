@@ -186,13 +186,13 @@ namespace embindcefv8
         {
             static void create(CefRefPtr<CefV8Value>& retval, const T & value)
             {
-                using type = typename std::remove_const<typename std::remove_reference<T>::type>::type;
+                using type = std::remove_const_t<std::remove_reference_t<T>>;
                 ValueCreator<type>::create(retval, const_cast<type &>(value));
             }
         };
 
         template<typename T>
-        struct ValueCreatorCaller<T, typename std::enable_if<std::is_pointer<T>::value>::type>
+        struct ValueCreatorCaller<T, std::enable_if_t<std::is_pointer_v<T>>>
         {
             static void create(CefRefPtr<CefV8Value>& retval, const T & value)
             {
@@ -202,7 +202,7 @@ namespace embindcefv8
                     return;
                 }
 
-                using type = typename std::remove_const<typename std::remove_reference<typename std::remove_pointer<T>::type>::type>::type;
+                using type = std::remove_const_t<std::remove_reference_t<std::remove_pointer_t<T>>>;
                 ValueCreator<type>::create(retval, const_cast<type &>(*value));
             }
         };
@@ -213,11 +213,11 @@ namespace embindcefv8
         template<typename T, class Enable = void>
         struct ValueConverter
         {
-            using Type = typename std::remove_const<typename std::remove_reference<T>::type>::type;
+            using Type = std::remove_const_t<std::remove_reference_t<T>>;
 
             template<class Q = T>
             static
-            typename std::enable_if<!IsValueObject<Type>::value, Q>::type
+            std::enable_if_t<!IsValueObject<Type>::value, Q>
             get(CefV8Value & v)
             {
                 return * reinterpret_cast<T *>(dynamic_cast<UserData*>(v.GetUserData().get())->data);
@@ -225,7 +225,7 @@ namespace embindcefv8
 
             template<class Q = Type>
             static
-            typename std::enable_if<IsValueObject<Type>::value, Q>::type
+            std::enable_if_t<IsValueObject<Type>::value, Q>
             get(CefV8Value & v)
             {
                 T
@@ -241,33 +241,33 @@ namespace embindcefv8
         };
 
         template<typename T>
-        struct ValueConverter<T, typename std::enable_if<std::is_pointer<T>::value>::type>
+        struct ValueConverter<T, std::enable_if_t<std::is_pointer_v<T>>>
         {
             static T get(CefV8Value & v)
             {
-                using type = typename std::remove_pointer<T>::type;
+                using type = std::remove_pointer_t<T>;
 
                 return reinterpret_cast<type *>(dynamic_cast<UserData*>(v.GetUserData().get())->data);
             }
         };
 
         template<typename T>
-        struct ValueConverter<T, typename std::enable_if<std::is_reference<T>::value && std::is_const<typename std::remove_reference<T>::type>::value>::type>
+        struct ValueConverter<T, std::enable_if_t<std::is_reference_v<T>&& std::is_const_v<std::remove_reference_t<T>>>>
         {
-            using Type = typename std::remove_const<typename std::remove_reference<T>::type>::type;
+            using Type = std::remove_const_t<std::remove_reference_t<T>>;
 
             template<class Q = T>
             static
-            typename std::enable_if<!IsValueObject<Type>::value, Q>::type
+            std::enable_if_t<!IsValueObject<Type>::value, Q>
             get(CefV8Value & v)
             {
-                using Type2 = typename std::remove_reference<T>::type;
+                using Type2 = std::remove_reference_t<T>;
                 return *reinterpret_cast<Type2 *>(dynamic_cast<UserData*>(v.GetUserData().get())->data);
             }
 
             template<class Q = Type>
             static
-            typename std::enable_if<IsValueObject<Type>::value, Q>::type
+            std::enable_if_t<IsValueObject<Type>::value, Q>
             get(CefV8Value & v)
             {
                 Type
@@ -283,22 +283,22 @@ namespace embindcefv8
         };
 
         template<typename T>
-        struct ValueConverter<T, typename std::enable_if<std::is_reference<T>::value && !std::is_const<typename std::remove_reference<T>::type>::value>::type>
+        struct ValueConverter<T, std::enable_if_t<std::is_reference_v<T>&& !std::is_const_v<std::remove_reference_t<T>>>>
         {
-            using Type = typename std::remove_const<typename std::remove_reference<T>::type>::type;
+            using Type = std::remove_const_t<std::remove_reference_t<T>>;
 
             template<class Q = T>
             static
-            typename std::enable_if<!IsValueObject<Type>::value, Q>::type
+            std::enable_if_t<!IsValueObject<Type>::value, Q>
             get(CefV8Value & v)
             {
-                using Type2 = typename std::remove_reference<T>::type;
+                using Type2 = std::remove_reference_t<T>;
                 return *reinterpret_cast<Type2 *>(dynamic_cast<UserData*>(v.GetUserData().get())->data);
             }
 
             template<class Q = T>
             static
-            typename std::enable_if<IsValueObject<Type>::value, Q>::type
+            std::enable_if_t<IsValueObject<Type>::value, Q>
             get(CefV8Value & v)
             {
                 Type
@@ -380,7 +380,7 @@ namespace embindcefv8
         struct FunctionInvoker
         {
             template<int N>
-            using GetArgType = typename std::tuple_element<N, std::tuple<Args...>>::type;
+            using GetArgType = std::tuple_element_t<N, std::tuple<Args...>>;
 
             static void call(Result (*staticFunction)(Args...), CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
             {
@@ -400,7 +400,7 @@ namespace embindcefv8
         struct MethodInvoker
         {
             template<int N>
-            using GetArgType = typename std::tuple_element<N, std::tuple<Args...>>::type;
+            using GetArgType = std::tuple_element_t<N, std::tuple<Args...>>;
 
             static void call(Result (T::*field)(Args...), void * object, CefRefPtr<CefV8Value>& retval, const CefV8ValueList& arguments)
             {
@@ -441,7 +441,7 @@ namespace embindcefv8
         struct ConstructorInvoker
         {
             template<int N>
-            using GetArgType = typename std::tuple_element<N, std::tuple<Args...>>::type;
+            using GetArgType = typename std::tuple_element_t<N, std::tuple<Args...>>;
 
             static T * call(const CefV8ValueList& arguments)
             {
@@ -562,7 +562,7 @@ namespace embindcefv8
     public:
 
         #ifdef EMSCRIPTEN
-        using EmscriptenBaseClass = typename std::conditional<std::is_void<typename GetBaseClass<T>::value>::value, emscripten::internal::NoBaseClass, emscripten::base<typename GetBaseClass<T>::value>>::type;
+        using EmscriptenBaseClass = std::conditional_t<std::is_void_v<typename GetBaseClass<T>>, emscripten::internal::NoBaseClass, emscripten::base<typename GetBaseClass<T>::value>>;
         #endif
 
         Class() = delete;
@@ -783,7 +783,7 @@ namespace embindcefv8
 
             template<class Q = T>
             static
-            typename std::enable_if<std::is_void<typename GetBaseClass<Q>::value>::value, bool>::type
+            std::enable_if_t<std::is_void_v<typename GetBaseClass<Q>::value>, bool>
             internalGet(const CefString& name, const CefRefPtr<CefV8Value> object, CefRefPtr<CefV8Value>& retval, CefString& exception)
             {
                 {
@@ -811,7 +811,7 @@ namespace embindcefv8
 
             template<class Q = T>
             static
-            typename std::enable_if<!std::is_void<typename GetBaseClass<Q>::value>::value, bool>::type
+            std::enable_if_t<!std::is_void_v<typename GetBaseClass<Q>::value>, bool>
             internalGet(const CefString& name, const CefRefPtr<CefV8Value> object, CefRefPtr<CefV8Value>& retval, CefString& exception)
             {
                 {
@@ -855,7 +855,7 @@ namespace embindcefv8
         {
             template<class Q = T>
             static
-            typename std::enable_if<IsValueObject<Q>::value, void>::type
+            std::enable_if_t<IsValueObject<Q>::value, void>
             create(CefRefPtr<CefV8Value>& retval, const T& value)
             {
                 retval = CefV8Value::CreateObject(nullptr);
@@ -870,7 +870,7 @@ namespace embindcefv8
 
             template<class Q = T>
             static
-            typename std::enable_if<!IsValueObject<Q>::value, void>::type
+            std::enable_if_t<!IsValueObject<Q>::value, void>
             create(CefRefPtr<CefV8Value>& retval, const T& value)
             {
                 retval = CefV8Value::CreateObject(&*Class<T>::classAccessor);
@@ -882,7 +882,7 @@ namespace embindcefv8
 
             template<class Q = T>
             static
-            typename std::enable_if<std::is_void<typename GetBaseClass<Q>::value>::value, void>::type
+            std::enable_if_t<std::is_void_v<typename GetBaseClass<Q>::value>, void>
             setGettersAndMethods(CefRefPtr<CefV8Value>& retval, const T& value)
             {
                 for(auto& kv : Class<T>::getters)
@@ -898,7 +898,7 @@ namespace embindcefv8
 
             template<class Q = T>
             static
-            typename std::enable_if<!std::is_void<typename GetBaseClass<Q>::value>::value, void>::type
+            std::enable_if_t<!std::is_void_v<typename GetBaseClass<Q>::value>, void>
             setGettersAndMethods(CefRefPtr<CefV8Value>& retval, const T& value)
             {
                 for(auto& kv : Class<T>::getters)
