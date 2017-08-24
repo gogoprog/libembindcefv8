@@ -562,7 +562,7 @@ namespace embindcefv8
     public:
 
         #ifdef EMSCRIPTEN
-        using EmscriptenBaseClass = std::conditional_t<std::is_void_v<typename GetBaseClass<T>>, emscripten::internal::NoBaseClass, emscripten::base<typename GetBaseClass<T>::value>>;
+        using EmscriptenBaseClass = std::conditional_t<std::is_void_v<typename GetBaseClass<T>::value>, emscripten::internal::NoBaseClass, emscripten::base<typename GetBaseClass<T>::value>>;
         #endif
 
         Class() = delete;
